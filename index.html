@@ -958,6 +958,7 @@ function confirmModal(){
   if(modalAction==='inicio'){p.status='en-camino';p.tsInicio=now;toast('🚚 Suc. '+p.suc+' — Salió a las '+now,'🚚');}
   else{p.status='entregado';p.tsFin=now;toast('✅ Suc. '+p.suc+' — Entregado a las '+now,'✅');}
   if(leafM[modalPid]) leafM[modalPid].setIcon(makeSucIco(p));
+  gsSaveEstado(p);
   drawOpLines();renderSidebar();renderChofer();closeModal();
 }
 
@@ -974,6 +975,7 @@ function checkResetDiario(){
 }
 function closeResetModal(){document.getElementById('reset-modal').classList.remove('open');localStorage.setItem(STORAGE_KEY_DATE,hoyStr());}
 function ejecutarReset(){
+  gsSaveHistorial();
   elabsConfirmadas['006']=false; elabsConfirmadas['225']=false;
   if(Object.keys(paradas).length) guardarHistorialDia();
   paradas={};trucks={};
@@ -1195,6 +1197,131 @@ function handleTapOnTruck(tid){
   else{configUnassigned[configElab]=configUnassigned[configElab].filter(function(x){return x!==sid;});}
   if(configTrucks[tid].indexOf(sid)===-1)configTrucks[tid].push(sid);
   setTapSelected(null);renderConfig();updateConfigMap();checkConfirmBtn();
+}
+
+// ── GOOGLE SHEETS SYNC ──
+var GS_URL = 'https://script.google.com/macros/s/AKfycbyF0IPOpZbrb71ttOAJjMngnh9aR4g8I8vcDu2S7RxPf65wXZ9rUhFYFyV6fOudm4jt/exec';
+
+function gsPost(data) {
+  fetch(GS_URL, {
+    method: 'POST',
+    body: JSON.stringify(data)
+  }).catch(function(e){ console.warn('GS sync error:', e); });
+}
+
+function gsSaveConfig(eid) {
+  var fecha = hoyStr();
+  var ps = Object.values(paradas).filter(function(p){ return p.elabId === eid; });
+  gsPost({
+    action: 'saveConfig',
+    fecha: fecha,
+    paradas: ps.map(function(p){
+      return {elabId:p.elabId,truckId:p.truckId,truckName:p.truckName,
+              id:p.id,suc:p.suc,dir:p.dir,orden:p.orden,etaMin:p.etaMin};
+    })
+  });
+}
+
+function gsSaveEstado(p) {
+  var demora = 0;
+  if(p.tsInicio && p.etaMin) {
+    var now = new Date();
+    var base = new Date(); base.setHours(0,0,0,0);
+    var parts = p.tsInicio.split(':');
+    var tsMs = base.getTime() + (+parts[0])*3600000 + (+parts[1])*60000;
+    demora = Math.round((now.getTime() - tsMs - p.etaMin*60000) / 60000);
+  }
+  gsPost({
+    action: 'saveEstado',
+    fecha: hoyStr(),
+    sucId: p.id,
+    status: p.status,
+    tsInicio: p.tsInicio || '',
+    tsFin: p.tsFin || '',
+    demora: demora > 0 ? demora : 0
+  });
+}
+
+function gsLoadEstado() {
+  var fecha = hoyStr();
+  fetch(GS_URL + '?action=getEstado&fecha=' + fecha)
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      if(!data.ok || !data.estados) return;
+      var changed = false;
+      Object.keys(data.estados).forEach(function(sucId){
+        if(paradas[sucId]) {
+          var e = data.estados[sucId];
+          paradas[sucId].status   = e.status   || paradas[sucId].status;
+          paradas[sucId].tsInicio = e.tsInicio  || paradas[sucId].tsInicio;
+          paradas[sucId].tsFin    = e.tsFin     || paradas[sucId].tsFin;
+          changed = true;
+        }
+      });
+      if(changed){ renderSidebar(); renderChofer(); drawOpLines(); }
+    })
+    .catch(function(e){ console.warn('gsLoadEstado error:', e); });
+}
+
+function gsLoadConfig() {
+  var fecha = hoyStr();
+  fetch(GS_URL + '?action=getConfig&fecha=' + fecha)
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      if(!data.ok || !data.paradas || data.paradas.length === 0) return;
+      // Reconstruir paradas y trucks desde Sheets
+      paradas = {}; trucks = {};
+      var byElab = {};
+      data.paradas.forEach(function(p){
+        if(!byElab[p.elabId]) byElab[p.elabId] = [];
+        byElab[p.elabId].push(p);
+      });
+      Object.keys(byElab).forEach(function(eid){
+        var e = ELABS[eid]; if(!e) return;
+        for(var i=0;i<e.numTrucks;i++){
+          var tid=e.id+'-T'+(i+1);
+          trucks[tid]={name:e.truckNames[i],color:e.truckColors[i],elabId:e.id,paradaIds:[]};
+        }
+        byElab[eid].forEach(function(p){
+          paradas[p.id] = Object.assign({}, 
+            e.sucursales.find(function(s){return s.id===p.id;}) || {},
+            {elabId:p.elabId,truckId:p.truckId,truckName:p.truckName,
+             truckColor:trucks[p.truckId]?trucks[p.truckId].color:'#f97316',
+             orden:p.orden,etaMin:p.etaMin,
+             status:'pendiente',tsInicio:null,tsFin:null}
+          );
+          if(trucks[p.truckId]) trucks[p.truckId].paradaIds.push(p.id);
+        });
+        elabsConfirmadas[eid] = true;
+        buildOpMapWithRoutes(eid);
+      });
+      document.getElementById('btn-op').disabled = false;
+      document.getElementById('btn-chofer').disabled = false;
+      gsLoadEstado();
+      toast('📋 Ruta del día cargada desde Sheets','📋');
+    })
+    .catch(function(e){ console.warn('gsLoadConfig error:', e); });
+}
+
+function gsSaveHistorial() {
+  var entregas = Object.values(paradas)
+    .filter(function(p){ return p.status === 'entregado'; })
+    .map(function(p){
+      var demora = 0;
+      if(p.tsInicio && p.etaMin){
+        var base = new Date(); base.setHours(0,0,0,0);
+        var parts = p.tsInicio.split(':');
+        var finParts = (p.tsFin||'00:00:00').split(':');
+        var tsIni = base.getTime() + (+parts[0])*3600000 + (+parts[1])*60000;
+        var tsFin = base.getTime() + (+finParts[0])*3600000 + (+finParts[1])*60000;
+        demora = Math.round((tsFin - tsIni - p.etaMin*60000) / 60000);
+      }
+      return {fecha:hoyStr(),elabId:p.elabId,truckId:p.truckId,truckName:p.truckName,
+              sucId:p.id,suc:p.suc,dir:p.dir,orden:p.orden,
+              tsInicio:p.tsInicio||'',tsFin:p.tsFin||'',
+              demora:demora>0?demora:0,etaMin:p.etaMin};
+    });
+  if(entregas.length > 0) gsPost({action:'saveHistorial', entregas:entregas});
 }
 async function init(){
   initTheme();
