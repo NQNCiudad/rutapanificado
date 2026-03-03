@@ -977,6 +977,7 @@ function closeResetModal(){document.getElementById('reset-modal').classList.remo
 function ejecutarReset(){
   gsSaveHistorial();
   elabsConfirmadas['006']=false; elabsConfirmadas['225']=false;
+  paradas={}; trucks={};
   if(Object.keys(paradas).length) guardarHistorialDia();
   paradas={};trucks={};
   Object.values(ELABS).forEach(e=>{
@@ -1269,6 +1270,8 @@ function gsLoadConfig() {
     .then(function(r){ return r.json(); })
     .then(function(data){
       if(!data.ok || !data.paradas || data.paradas.length === 0) return;
+      // Solo cargar si no hay paradas en memoria ya (no sobreescribir trabajo actual)
+      if(Object.keys(paradas).length > 0) { gsLoadEstado(); return; }
       // Reconstruir paradas y trucks desde Sheets
       paradas = {}; trucks = {};
       var byElab = {};
@@ -1335,6 +1338,12 @@ async function init(){
   showPage('config');
   document.getElementById('btn-config').classList.add('active');
   checkResetDiario();
+  // Cargar config y estado del día desde Google Sheets
+  setTimeout(gsLoadConfig, 800);
+  // Polling: actualizar estado cada 30 segundos
+  setInterval(function(){
+    if(Object.keys(paradas).length > 0) gsLoadEstado();
+  }, 30000);
 }
 init();
 </script>
