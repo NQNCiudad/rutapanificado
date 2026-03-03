@@ -1201,18 +1201,17 @@ function handleTapOnTruck(tid){
 }
 
 // ── GOOGLE SHEETS SYNC ──
-var GS_URL = 'https://script.google.com/macros/s/AKfycbyF0IPOpZbrb71ttOAJjMngnh9aR4g8I8vcDu2S7RxPf65wXZ9rUhFYFyV6fOudm4jt/exec';
+var GS_URL = 'https://script.google.com/macros/s/AKfycbyEwaXuHq7yrLQapSQ_UNilg-Xu0vFvSkbqOT5MeQYrlTtAPaVu-ycvhWUqXeAyXw4Q/exec';
 
 function gsPost(data, callback) {
-  // Usar no-cors para POST (CORS bloqueado desde GitHub Pages)
-  fetch(GS_URL, {
-    method: 'POST',
-    mode: 'no-cors',
-    headers: {'Content-Type': 'text/plain'},
-    body: JSON.stringify(data)
-  }).then(function(){
-    if(callback) callback();
-  }).catch(function(e){ console.warn('GS sync error:', e); });
+  // Enviar via GET con data en URL para evitar CORS
+  var url = GS_URL + '?data=' + encodeURIComponent(JSON.stringify(data));
+  fetch(url)
+    .then(function(r){ return r.json(); })
+    .then(function(res){
+      if(callback) callback(res);
+    })
+    .catch(function(e){ console.warn('GS sync error:', e); });
 }
 
 function gsSaveConfig(eid) {
