@@ -812,6 +812,7 @@ function confirmarElab(eid){
   document.getElementById('btn-op').disabled=false;
   document.getElementById('btn-chofer').disabled=false;
   checkConfirmBtn();
+  gsSaveConfig(eid);
   toast('Suc. '+eid+' confirmada — ruta pintada en el mapa','🗺️');
 }
 function confirmarConfig(){confirmarElab(configElab);}
@@ -1273,11 +1274,15 @@ function gsLoadConfig() {
   fetch(GS_URL + '?action=getConfig&fecha=' + fecha)
     .then(function(r){ return r.json(); })
     .then(function(data){
+      toast('Sheets: '+(data.paradas?data.paradas.length+' paradas':'sin datos'),'📋');
       if(!data.ok || !data.paradas || data.paradas.length === 0) return;
-      // Solo cargar si no hay paradas en memoria ya (no sobreescribir trabajo actual)
-      if(Object.keys(paradas).length > 0) { gsLoadEstado(); return; }
-      // Reconstruir paradas y trucks desde Sheets
+      // Reconstruir paradas, trucks Y configTrucks desde Sheets
       paradas = {}; trucks = {};
+      // Resetear config también
+      Object.values(ELABS).forEach(function(e){
+        configUnassigned[e.id] = [];
+        for(var i=0;i<e.numTrucks;i++) configTrucks[e.id+'-T'+(i+1)] = [];
+      });
       var byElab = {};
       data.paradas.forEach(function(p){
         if(!byElab[p.elabId]) byElab[p.elabId] = [];
@@ -1289,23 +1294,33 @@ function gsLoadConfig() {
           var tid=e.id+'-T'+(i+1);
           trucks[tid]={name:e.truckNames[i],color:e.truckColors[i],elabId:e.id,paradaIds:[]};
         }
+        // Ordenar por orden antes de reconstruir
+        byElab[eid].sort(function(a,b){return a.orden - b.orden;});
         byElab[eid].forEach(function(p){
-          paradas[p.id] = Object.assign({}, 
-            e.sucursales.find(function(s){return s.id===p.id;}) || {},
-            {elabId:p.elabId,truckId:p.truckId,truckName:p.truckName,
-             truckColor:trucks[p.truckId]?trucks[p.truckId].color:'#f97316',
-             orden:p.orden,etaMin:p.etaMin,
-             status:'pendiente',tsInicio:null,tsFin:null}
-          );
+          var sucBase = e.sucursales.find(function(s){return s.id===p.id;}) || {};
+          var truckColor = trucks[p.truckId] ? trucks[p.truckId].color : '#f97316';
+          paradas[p.id] = Object.assign({}, sucBase, {
+            elabId:p.elabId, truckId:p.truckId, truckName:p.truckName,
+            truckColor:truckColor, orden:p.orden, etaMin:p.etaMin,
+            status:'pendiente', tsInicio:null, tsFin:null
+          });
           if(trucks[p.truckId]) trucks[p.truckId].paradaIds.push(p.id);
+          // Reconstruir configTrucks para que Config panel muestre asignaciones
+          if(!configTrucks[p.truckId]) configTrucks[p.truckId] = [];
+          configTrucks[p.truckId].push(p.id);
         });
         elabsConfirmadas[eid] = true;
         buildOpMapWithRoutes(eid);
       });
+      // Habilitar botones
       document.getElementById('btn-op').disabled = false;
       document.getElementById('btn-chofer').disabled = false;
+      // Actualizar UI
+      checkConfirmBtn();
+      renderConfig();
+      // Cargar estado de entregas
       gsLoadEstado();
-      toast('📋 Ruta del día cargada desde Sheets','📋');
+      toast('📋 Ruta del día cargada','📋');
     })
     .catch(function(e){ console.warn('gsLoadConfig error:', e); });
 }
