@@ -291,6 +291,7 @@ body.light .theme-btn{border-color:rgba(0,0,0,.25);color:rgba(0,0,0,.6);}
   <div class="geo-title">PanRuta</div>
   <div class="geo-sub">Ubicando sucursales en el mapa…</div>
   <div id="geo-prog">Iniciando…</div>
+  <div id="geo-summary" style="font-size:11px;color:rgba(240,180,41,.6);margin-top:8px;">2 elaboradoras · 11 sucursales · 4 camiones</div>
 </div>
 
 <div class="page" id="page-config">
@@ -1019,6 +1020,7 @@ async function geocodeAll(){
   for(let i=0;i<tasks.length;i++){
     const t=tasks[i];
     document.getElementById('geo-prog').textContent=t.label+' ('+(i+1)+'/'+tasks.length+')';
+    document.getElementById('geo-summary').textContent='2 elaboradoras · 11 sucursales · 4 camiones';
     try{const c=await geocode(t.obj.address);if(c){t.obj.lat=c.lat;t.obj.lng=c.lng;}}catch(e){}
     if(i<tasks.length-1) await new Promise(r=>setTimeout(r,1100));
   }
@@ -1088,8 +1090,17 @@ function gsLoadEstado() {
         if(paradas[sid]){
           var e = data.estados[sid];
           if(e.status) paradas[sid].status = e.status;
-          if(e.tsInicio) paradas[sid].tsInicio = e.tsInicio;
-          if(e.tsFin) paradas[sid].tsFin = e.tsFin;
+          if(e.tsInicio) {
+            // Sheets puede devolver timestamp completo, extraer solo HH:MM:SS
+            var ts = String(e.tsInicio);
+            var m = ts.match(/(\d{1,2}:\d{2}:\d{2})/);
+            paradas[sid].tsInicio = m ? m[1] : ts.substring(0,8);
+          }
+          if(e.tsFin) {
+            var tf = String(e.tsFin);
+            var mf = tf.match(/(\d{1,2}:\d{2}:\d{2})/);
+            paradas[sid].tsFin = mf ? mf[1] : tf.substring(0,8);
+          }
           changed = true;
         }
       });
