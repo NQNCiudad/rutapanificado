@@ -266,6 +266,16 @@ body.light .pdf-btn{border-color:rgba(90,52,0,.45);background:rgba(90,52,0,.1);c
 body.light .xlsx-btn{border-color:rgba(22,101,52,.4);background:rgba(22,101,52,.1);color:#14532d;}
 body.light .parada-card{background:#e8d8a8;border-color:rgba(0,0,0,.18);}
 body.light .chofer-btn{color:rgba(0,0,0,.6);background:rgba(0,0,0,.06);border-color:rgba(0,0,0,.2);}
+.vuelta-selector{display:flex;align-items:center;gap:3px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:2px 4px;}
+.vuelta-btn{background:transparent;border:none;color:rgba(255,255,255,.45);font-size:10px;font-weight:700;padding:3px 8px;border-radius:16px;cursor:pointer;font-family:inherit;transition:all .2s;}
+.vuelta-btn.active{background:var(--gold);color:#110800;}
+.vuelta-btn:hover:not(.active){color:rgba(255,255,255,.8);}
+body.light .vuelta-selector{background:rgba(0,0,0,.07);border-color:rgba(0,0,0,.18);}
+body.light .vuelta-btn{color:rgba(0,0,0,.4);}
+body.light .vuelta-btn.active{background:#7a4800;color:#fff;}
+.cerrar-vuelta-btn{background:rgba(240,180,41,.15);border:1px solid rgba(240,180,41,.4);border-radius:20px;color:var(--gold);font-size:9.5px;font-weight:700;padding:4px 10px;cursor:pointer;font-family:inherit;transition:all .2s;white-space:nowrap;}
+.cerrar-vuelta-btn:hover{background:rgba(240,180,41,.3);}
+body.light .cerrar-vuelta-btn{background:rgba(122,72,0,.12);border-color:rgba(122,72,0,.4);color:#7a4800;}
 .theme-btn{background:transparent;border:1px solid rgba(255,255,255,.22);border-radius:20px;color:rgba(255,255,255,.7);font-size:15px;width:30px;height:30px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;flex-shrink:0;padding:0;}
 .theme-btn:hover{border-color:var(--gold);}
 body.light .theme-btn{border-color:rgba(0,0,0,.25);color:rgba(0,0,0,.6);}
@@ -282,7 +292,14 @@ body.light .theme-btn{border-color:rgba(0,0,0,.25);color:rgba(0,0,0,.6);}
     <button class="view-btn" id="btn-op" onclick="goOp()" disabled>🖥 Operador</button>
     <button class="view-btn" id="btn-chofer" onclick="goChofer()" disabled>🚚 Chofer</button>
   </div>
-  <div class="hdr-right"><button class="theme-btn" id="theme-btn" onclick="toggleTheme()" title="Tema">&#127769;</button>
+  <div class="hdr-right">
+    <div class="vuelta-selector">
+      <button class="vuelta-btn active" id="vbtn-1" onclick="irAVuelta(1)">V1</button>
+      <button class="vuelta-btn" id="vbtn-2" onclick="irAVuelta(2)">V2</button>
+      <button class="vuelta-btn" id="vbtn-3" onclick="irAVuelta(3)">V3</button>
+    </div>
+    <button class="cerrar-vuelta-btn" id="btn-cerrar-vuelta" onclick="pedirCerrarVuelta()" style="display:none">✓ Cerrar Vuelta</button>
+    <button class="theme-btn" id="theme-btn" onclick="toggleTheme()" title="Tema">&#127769;</button>
     <div class="live-pill"><div class="pdot"></div>En Vivo</div>
     <div class="hdr-clock" id="clock">--:--:--</div>
   </div>
@@ -372,6 +389,18 @@ body.light .theme-btn{border-color:rgba(0,0,0,.25);color:rgba(0,0,0,.6);}
   </div>
 </div>
 
+<div id="vuelta-modal" style="position:fixed;inset:0;z-index:9996;background:rgba(9,7,5,.92);backdrop-filter:blur(10px);display:none;align-items:center;justify-content:center;">
+  <div class="reset-box">
+    <div class="reset-icon">🔄</div>
+    <div class="reset-title" id="vuelta-modal-title">Cerrar Vuelta 1</div>
+    <div class="reset-sub" id="vuelta-modal-sub">Se guardará el registro de esta vuelta y las sucursales volverán a pendiente para la siguiente.</div>
+    <div class="reset-btns">
+      <button class="reset-btn reset-cancel" onclick="closeVueltaModal()">Cancelar</button>
+      <button class="reset-btn reset-ok" onclick="ejecutarCerrarVuelta()">✓ Cerrar Vuelta</button>
+    </div>
+  </div>
+</div>
+
 <div id="reset-modal">
   <div class="reset-box">
     <div class="reset-icon">🌅</div>
@@ -419,6 +448,7 @@ const ELABS = {
 
 let paradas={}, trucks={};
 let truckPatentes={};
+let vueltaActual=1;
 let configElab='006', configTrucks={}, configUnassigned={};
 let opElab='006', selectedCard=null, selTruck=null, selChofer=null;
 let modalPid=null, modalAction=null;
@@ -704,6 +734,7 @@ function confirmarElab(eid){
   document.getElementById('btn-chofer').disabled=false;
   checkConfirmBtn();
   gsSaveConfig(eid);
+  actualizarBotonesVuelta();
   toast('Suc. '+eid+' confirmada — ruta pintada en el mapa','🗺️');
 }
 function confirmarConfig(){confirmarElab(configElab);}
@@ -967,7 +998,7 @@ function generarPDF(){
   doc.text('PANRUTA — REPORTE DE ENTREGAS',M,12);
   doc.setFontSize(8);doc.setFont('helvetica','normal');doc.setTextColor(150,130,90);
   doc.text(elab.nombre+'  ·  '+elab.dir,M,19);
-  doc.text(new Date().toLocaleDateString('es-AR')+'  '+new Date().toLocaleTimeString('es-AR',{hour12:false}),W-M,19,{align:'right'});
+  doc.text('Vuelta '+vueltaActual+'  ·  '+new Date().toLocaleDateString('es-AR')+'  '+new Date().toLocaleTimeString('es-AR',{hour12:false}),W-M,19,{align:'right'});
   y=36;
   Object.entries(trucks).filter(([,t])=>t.elabId===opElab).forEach(([tid,t])=>{
     const tps=t.paradaIds.map(id=>paradas[id]).filter(Boolean);if(!tps.length) return;
@@ -1053,6 +1084,121 @@ let lastDate=hoyStr();
 
 // ── INIT ──
 
+// ── SISTEMA DE VUELTAS ──
+function irAVuelta(n) {
+  // Solo permite ir a vuelta si hay entregas completas o la vuelta está vacía
+  if(n === vueltaActual) return;
+  // Verificar si hay paradas en curso
+  var enCurso = Object.values(paradas).some(function(p){ return p.status !== 'pendiente'; });
+  if(enCurso && n < vueltaActual) {
+    toast('Cerrá la vuelta actual antes de volver atrás','⚠️'); return;
+  }
+  vueltaActual = n;
+  actualizarBotonesVuelta();
+  // Cargar config y estado de esta vuelta desde Sheets
+  gsLoadConfigVuelta(n);
+}
+
+function actualizarBotonesVuelta() {
+  [1,2,3].forEach(function(n){
+    var btn = document.getElementById('vbtn-'+n);
+    if(btn) btn.className = 'vuelta-btn' + (n===vueltaActual?' active':'');
+  });
+  // Mostrar botón cerrar vuelta si hay paradas confirmadas
+  var hayParadas = Object.keys(paradas).length > 0;
+  var btnCerrar = document.getElementById('btn-cerrar-vuelta');
+  if(btnCerrar) btnCerrar.style.display = hayParadas ? '' : 'none';
+}
+
+function pedirCerrarVuelta() {
+  var t = document.getElementById('vuelta-modal-title');
+  var s = document.getElementById('vuelta-modal-sub');
+  if(t) t.textContent = 'Cerrar Vuelta ' + vueltaActual;
+  if(s) {
+    var entregadas = Object.values(paradas).filter(function(p){ return p.status==='entregado'; }).length;
+    var total = Object.keys(paradas).length;
+    s.textContent = entregadas + ' de ' + total + ' entregas completas. Se guardará el registro y las sucursales volverán a pendiente para la siguiente vuelta.';
+  }
+  document.getElementById('vuelta-modal').style.display = 'flex';
+}
+
+function closeVueltaModal() {
+  document.getElementById('vuelta-modal').style.display = 'none';
+}
+
+function ejecutarCerrarVuelta() {
+  closeVueltaModal();
+  // Guardar historial de esta vuelta
+  gsSaveHistorialVuelta(vueltaActual);
+  // Resetear estados a pendiente (mantener config)
+  Object.values(paradas).forEach(function(p){
+    p.status = 'pendiente'; p.tsInicio = null; p.tsFin = null;
+  });
+  // Pasar a siguiente vuelta
+  if(vueltaActual < 3) {
+    vueltaActual++;
+    actualizarBotonesVuelta();
+  }
+  // Limpiar estado en Sheets para nueva vuelta
+  renderSidebar(); renderChofer(); drawOpLines();
+  toast('Vuelta ' + (vueltaActual-1) + ' cerrada ✓ — Vuelta ' + vueltaActual + ' iniciada', '🔄');
+}
+
+function gsSaveHistorialVuelta(nVuelta) {
+  var entregas = Object.values(paradas).map(function(p){
+    return {fecha:hoyStr(), vuelta:nVuelta,
+            elabId:p.elabId, truckId:p.truckId, truckName:p.truckName,
+            patente:truckPatentes[p.truckId]||'',
+            sucId:p.id, suc:p.suc, dir:p.dir, orden:p.orden,
+            tsInicio:p.tsInicio||'', tsFin:p.tsFin||'',
+            status:p.status, demora:0, etaMin:p.etaMin};
+  });
+  if(entregas.length > 0) gsPost({action:'saveHistorial', entregas:entregas});
+}
+
+function gsLoadConfigVuelta(nVuelta) {
+  // Para vueltas 2 y 3, cargar config específica si existe, sino usar la de vuelta 1
+  var fecha = hoyStr();
+  fetch(GS_URL + '?action=getConfig&fecha=' + fecha + '&vuelta=' + nVuelta)
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      if(!data.ok || !data.paradas || data.paradas.length === 0) {
+        // Si no hay config específica para esta vuelta, usar la actual (vuelta 1)
+        // Solo resetear estados
+        Object.values(paradas).forEach(function(p){
+          p.status='pendiente'; p.tsInicio=null; p.tsFin=null;
+        });
+        gsLoadEstadoVuelta(nVuelta);
+        renderSidebar(); renderChofer(); drawOpLines();
+        return;
+      }
+      // Cargar config específica de esta vuelta
+      gsAplicarConfig(data.paradas);
+      gsLoadEstadoVuelta(nVuelta);
+    })
+    .catch(function(e){ console.warn('gsLoadConfigVuelta error:', e); });
+}
+
+function gsLoadEstadoVuelta(nVuelta) {
+  var fecha = hoyStr();
+  fetch(GS_URL + '?action=getEstado&fecha=' + fecha + '&vuelta=' + nVuelta)
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      if(!data.ok || !data.estados) return;
+      Object.keys(data.estados).forEach(function(sid){
+        var sidStr = String(sid);
+        if(paradas[sidStr]){
+          var e = data.estados[sidStr];
+          if(e.status) paradas[sidStr].status = e.status;
+          if(e.tsInicio) paradas[sidStr].tsInicio = e.tsInicio;
+          if(e.tsFin) paradas[sidStr].tsFin = e.tsFin;
+        }
+      });
+      renderSidebar(); renderChofer(); drawOpLines();
+    })
+    .catch(function(e){ console.warn('gsLoadEstadoVuelta error:', e); });
+}
+
 var GS_URL = 'https://script.google.com/macros/s/AKfycbyEwaXuHq7yrLQapSQ_UNilg-Xu0vFvSkbqOT5MeQYrlTtAPaVu-ycvhWUqXeAyXw4Q/exec';
 
 function gsPost(data) {
@@ -1065,7 +1211,7 @@ function gsSaveConfig(eid) {
   var ps = Object.values(paradas).filter(function(p){ return p.elabId === eid; });
   if(ps.length === 0) return;
   gsPost({
-    action:'saveConfig', fecha:fecha,
+    action:'saveConfig', fecha:fecha, vuelta:vueltaActual,
     paradas: ps.map(function(p){
       return {elabId:String(p.elabId),truckId:p.truckId,truckName:p.truckName,patente:truckPatentes[p.truckId]||'',
               id:p.id,suc:p.suc,dir:p.dir,orden:p.orden,etaMin:p.etaMin};
@@ -1075,7 +1221,7 @@ function gsSaveConfig(eid) {
 
 function gsSaveEstado(p) {
   gsPost({
-    action:'saveEstado', fecha:hoyStr(),
+    action:'saveEstado', fecha:hoyStr(), vuelta:vueltaActual,
     sucId:p.id, status:p.status,
     tsInicio:p.tsInicio||'', tsFin:p.tsFin||'', demora:0
   });
@@ -1083,7 +1229,7 @@ function gsSaveEstado(p) {
 
 function gsLoadEstado() {
   var fecha = hoyStr();
-  fetch(GS_URL + '?action=getEstado&fecha=' + fecha)
+  fetch(GS_URL + '?action=getEstado&fecha=' + fecha + '&vuelta=' + vueltaActual)
     .then(function(r){ return r.json(); })
     .then(function(data){
       if(!data.ok || !data.estados) return;
@@ -1116,7 +1262,7 @@ function gsLoadEstado() {
 
 function gsLoadConfig() {
   var fecha = hoyStr();
-  fetch(GS_URL + '?action=getConfig&fecha=' + fecha)
+  fetch(GS_URL + '?action=getConfig&fecha=' + fecha + '&vuelta=' + vueltaActual)
     .then(function(r){ return r.json(); })
     .then(function(data){
       var n = data.paradas ? data.paradas.length : 0;
