@@ -1130,8 +1130,8 @@ function gsLoadConfig() {
         }
         byElab[eid].sort(function(a,b){ return Number(a.orden)-Number(b.orden); });
         byElab[eid].forEach(function(p){
-          var sucBase = e.sucursales.find(function(s){ return s.id===p.id; })||{};
-          var tc = trucks[p.truckId]?trucks[p.truckId].color:'#f97316';
+          var sucBase = e.sucursales.find(function(s){ return String(s.id)===String(p.id); })||{};
+          var tc = trucks[String(p.truckId)]?trucks[String(p.truckId)].color:'#f97316';
           paradas[p.id] = Object.assign({},sucBase,{
             elabId:p.elabId,truckId:p.truckId,truckName:p.truckName,truckColor:tc,
             orden:Number(p.orden),etaMin:Number(p.etaMin),
