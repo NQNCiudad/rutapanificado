@@ -68,6 +68,9 @@ header::after{content:'';position:absolute;inset:0;background:linear-gradient(90
 .truck-zone-header{padding:7px 11px;display:flex;align-items:center;gap:7px;border-bottom:1px solid rgba(255,255,255,.05);}
 .truck-zone-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
 .truck-zone-name{font-size:11px;font-weight:700;flex:1;}
+.patente-input{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);border-radius:5px;color:var(--cream);font-size:10px;padding:2px 7px;width:75px;margin-left:auto;margin-right:6px;font-family:inherit;text-transform:uppercase;}
+.patente-input:focus{outline:none;border-color:var(--gold);}
+body.light .patente-input{background:rgba(0,0,0,.06);border-color:rgba(0,0,0,.2);color:#1a1208;}
 .truck-zone-count{font-size:9.5px;color:rgba(255,255,255,.28);}
 .truck-drop{min-height:54px;padding:5px 7px;display:flex;flex-direction:column;gap:4px;transition:background .15s;}
 .truck-drop.drag-over{background:rgba(255,255,255,.05);}
@@ -415,6 +418,7 @@ const ELABS = {
 };
 
 let paradas={}, trucks={};
+let truckPatentes={};
 let configElab='006', configTrucks={}, configUnassigned={};
 let opElab='006', selectedCard=null, selTruck=null, selChofer=null;
 let modalPid=null, modalAction=null;
@@ -627,7 +631,7 @@ function renderConfig(){
     const tdef=getTruckDef(tid);
     const etas=calcEtaChain(configElab,tid);
     const zone=document.createElement('div');zone.className='truck-zone';
-    zone.innerHTML='<div class="truck-zone-header"><div class="truck-zone-dot" style="background:'+tdef.color+'"></div><div class="truck-zone-name" style="color:'+tdef.color+'">'+tdef.name+'</div><div class="truck-zone-count">'+ids.length+' parada'+(ids.length!==1?'s':'')+'</div></div><div class="truck-drop" id="drop-'+tid+'"></div>';
+    zone.innerHTML='<div class="truck-zone-header"><div class="truck-zone-dot" style="background:'+tdef.color+'"></div><div class="truck-zone-name" style="color:'+tdef.color+'">'+tdef.name+'</div><input class="patente-input" placeholder="Patente" value="'+( truckPatentes[tid]||'')+'" onchange="truckPatentes[\''+ tid +'\']= this.value" /><div class="truck-zone-count">'+ids.length+' parada'+(ids.length!==1?'s':'')+'</div></div><div class="truck-drop" id="drop-'+tid+'"></div>';
     ct.appendChild(zone);
     const drop=document.getElementById('drop-'+tid);
     if(ids.length===0){
@@ -968,7 +972,8 @@ function generarPDF(){
   Object.entries(trucks).filter(([,t])=>t.elabId===opElab).forEach(([tid,t])=>{
     const tps=t.paradaIds.map(id=>paradas[id]).filter(Boolean);if(!tps.length) return;
     doc.setFillColor(22,13,3);doc.rect(M-2,y-5,W-2*M+4,10,'F');
-    doc.setFontSize(11);doc.setFont('helvetica','bold');doc.setTextColor(240,180,41);doc.text(t.name.toUpperCase(),M,y);
+    doc.setFontSize(11);doc.setFont('helvetica','bold');doc.setTextColor(240,180,41);var pat=truckPatentes[tid]?' ['+truckPatentes[tid]+']':'';
+    doc.text(t.name.toUpperCase()+pat,M,y);
     const done=tps.filter(p=>p.status==='entregado').length;
     doc.setFontSize(8);doc.setFont('helvetica','normal');doc.setTextColor(135,115,75);
     doc.text(done+'/'+tps.length+' entregas',W-M,y,{align:'right'});y+=7;
@@ -977,8 +982,8 @@ function generarPDF(){
     ['#','SUCURSAL','DIRECCIÓN','SALIDA','ENTREGA','ETA','DEMORA'].forEach((h,i)=>doc.text(h,cols[i],y));
     y+=1;doc.setDrawColor(42,28,7);doc.setLineWidth(0.2);doc.line(M,y,W-M,y);y+=4;
     tps.forEach((p,ri)=>{
-      if(ri%2===0){doc.setFillColor(15,10,2);doc.rect(M-2,y-3,W-2*M+4,7,'F');}
-      doc.setFontSize(7.5);doc.setFont('helvetica','normal');doc.setTextColor(210,190,155);
+      if(ri%2===0){doc.setFillColor(15,10,2);}else{doc.setFillColor(30,20,6);}doc.rect(M-2,y-3,W-2*M+4,7,'F');
+      doc.setFontSize(7.5);doc.setFont('helvetica','normal');doc.setTextColor(230,210,170);
       doc.text(String(p.orden),cols[0],y);doc.text('Suc. '+p.suc,cols[1],y);doc.text((p.dir||'').substring(0,28),cols[2],y);
       doc.setTextColor(p.tsInicio?75:85,p.tsInicio?180:80,p.tsInicio?80:62);doc.text(p.tsInicio||'—',cols[3],y);
       doc.setTextColor(p.tsFin?75:85,p.tsFin?180:80,p.tsFin?80:62);doc.text(p.tsFin||'—',cols[4],y);
@@ -1062,7 +1067,7 @@ function gsSaveConfig(eid) {
   gsPost({
     action:'saveConfig', fecha:fecha,
     paradas: ps.map(function(p){
-      return {elabId:String(p.elabId),truckId:p.truckId,truckName:p.truckName,
+      return {elabId:String(p.elabId),truckId:p.truckId,truckName:p.truckName,patente:truckPatentes[p.truckId]||'',
               id:p.id,suc:p.suc,dir:p.dir,orden:p.orden,etaMin:p.etaMin};
     })
   });
@@ -1149,6 +1154,7 @@ function gsLoadConfig() {
             status:'pendiente',tsInicio:null,tsFin:null
           });
           if(trucks[p.truckId]) trucks[p.truckId].paradaIds.push(p.id);
+          if(p.patente) truckPatentes[p.truckId] = p.patente;
           if(!configTrucks[p.truckId]) configTrucks[p.truckId]=[];
           configTrucks[p.truckId].push(p.id);
         });
