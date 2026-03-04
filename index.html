@@ -1060,7 +1060,7 @@ function gsSaveConfig(eid) {
   gsPost({
     action:'saveConfig', fecha:fecha,
     paradas: ps.map(function(p){
-      return {elabId:p.elabId,truckId:p.truckId,truckName:p.truckName,
+      return {elabId:String(p.elabId),truckId:p.truckId,truckName:p.truckName,
               id:p.id,suc:p.suc,dir:p.dir,orden:p.orden,etaMin:p.etaMin};
     })
   });
@@ -1082,6 +1082,9 @@ function gsLoadEstado() {
       if(!data.ok || !data.estados) return;
       var changed = false;
       Object.keys(data.estados).forEach(function(sid){
+        // SucId puede venir como número desde Sheets
+        var sidStr = String(sid);
+        if(paradas[sidStr]){ sid = sidStr; }
         if(paradas[sid]){
           var e = data.estados[sid];
           if(e.status) paradas[sid].status = e.status;
@@ -1112,6 +1115,9 @@ function gsLoadConfig() {
 
       var byElab = {};
       data.paradas.forEach(function(p){
+        // Normalizar elabId: '6' -> '006', '225' -> '225'
+        if(p.elabId && String(p.elabId).length < 3) p.elabId = String(p.elabId).padStart(3,'0');
+        else p.elabId = String(p.elabId);
         if(!byElab[p.elabId]) byElab[p.elabId] = [];
         byElab[p.elabId].push(p);
       });
