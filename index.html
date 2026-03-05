@@ -489,7 +489,7 @@ body.light .admin-pin-input{background:rgba(255,255,255,.6);border-color:rgba(0,
     <div class="camiones-wrap" id="camiones-wrap"></div>
     <div class="list-hdr">📦 Paradas</div>
     <div class="cards-wrap" id="cards-wrap"></div>
-    <button class="pdf-btn" id="pdf-btn" onclick="generarPDF()" disabled>📄 Reporte PDF del día</button>
+    <button class="pdf-btn" id="pdf-btn" onclick="generarPDF()">📄 Reporte PDF del día</button>
     <button class="xlsx-btn" onclick="exportarExcelSemanal()">📊 Historial Semanal Excel</button>
   </div>
   <div class="map-wrap">
@@ -1178,20 +1178,25 @@ function confirmarConfig(){confirmarElab(configElab);}
 // ── GESTIÓN DE VUELTAS ──────────────────────────────────────────────────────
 
 function setVueltaElab(eid, v){
-  // Solo permitir avanzar — no retroceder si ya hay confirmadas
   vueltaElab[eid] = v;
-  // Actualizar UI de botones de vuelta
   for(var i=1; i<=3; i++){
     var btn = document.getElementById('evbtn-'+eid+'-'+i);
     if(!btn) continue;
+    btn.classList.remove('active');
     if(i === v){
-      btn.classList.add('active-vuelta');
-      btn.style.opacity='1'; btn.style.cursor='default';
+      btn.classList.add('active');
+      btn.style.opacity='1';
+      btn.style.cursor='default';
+      btn.removeAttribute('disabled');
     } else if(i < v){
-      btn.style.opacity='0.5'; btn.style.cursor='pointer';
+      // Vuelta ya completada
+      btn.style.opacity='0.5';
+      btn.style.cursor='pointer';
       btn.removeAttribute('disabled');
     } else {
-      btn.style.opacity='0.3'; btn.style.cursor='not-allowed';
+      // Vuelta futura — bloqueada
+      btn.style.opacity='0.3';
+      btn.style.cursor='not-allowed';
       btn.setAttribute('disabled','');
     }
   }
@@ -1200,12 +1205,10 @@ function setVueltaElab(eid, v){
 function actualizarBtnCerrarVuelta(eid){
   var btn = document.getElementById('btn-cv-'+eid);
   if(!btn) return;
-  // Mostrar botón cerrar vuelta solo si la elab está confirmada
-  if(elabsConfirmadas[eid]){
-    btn.style.display = 'block';
-  } else {
-    btn.style.display = 'none';
-  }
+  // Actualizar número de vuelta en el botón
+  var span = document.getElementById('cv-n-'+eid);
+  if(span) span.textContent = vueltaElab[eid]||1;
+  btn.style.display = elabsConfirmadas[eid] ? 'block' : 'none';
 }
 
 function pedirCerrarVueltaElab(eid){
@@ -1375,7 +1378,7 @@ function renderSidebar(){
   });
 
   const allPs=Object.values(paradas).filter(p=>p.elabId===opElab);
-  document.getElementById('pdf-btn').disabled=!allPs.length||!allPs.every(p=>p.status==='entregado');
+  document.getElementById('pdf-btn').disabled = false; // siempre disponible
 }
 
 // ── CHOFER ──
@@ -1588,8 +1591,8 @@ function generarPDF(){
   // Columnas: ancho total útil = W - 2*M = 273mm
   // #(8) | Suc(22) | Dirección(62) | Salida(22) | Entrega(22) | ETA(18) | Demora(20)
   // Total: 8+22+62+22+22+18+20 = 174 → con padding entre cols queda bien
-  const colX = [M, M+10, M+34, M+100, M+126, M+152, M+172];
-  const colW = [10, 24, 64, 24, 24, 18, 22];
+  const colX = [M, M+10, M+34, M+96, M+120, M+144, M+162, M+185];
+  const colW = [10, 22, 60, 22, 22, 16, 20, 80];
 
   function drawTableHeader(yy){
     // Fondo header
@@ -1601,7 +1604,7 @@ function generarPDF(){
     doc.line(M-1,yy+3, W-M+1,yy+3);
     // Texto encabezados
     doc.setFontSize(8.5);doc.setFont('helvetica','bold');doc.setTextColor(255,220,80);
-    const hdrs=['#','SUCURSAL','DIRECCIÓN','SALIDA','ENTREGA','ETA','DEMORA'];
+    const hdrs=['#','SUCURSAL','DIRECCIÓN','SALIDA','ENTREGA','ETA','DEMORA','ESTADO'];
     hdrs.forEach((h,i)=> doc.text(h, colX[i]+1, yy));
     return yy+7;
   }
@@ -1661,6 +1664,20 @@ function generarPDF(){
     doc.setFont('helvetica','bold');
     doc.setTextColor(esLenta?248:80, esLenta?80:220, esLenta?80:100);
     doc.text(demoraMin, colX[6]+1, yy);
+
+    // Columna ESTADO — badge visual
+    var estado = p.status==='entregado' ? (esLenta ? 'CON DEMORA' : 'A TIEMPO') : (p.status==='en-camino' ? 'EN CAMINO' : 'PENDIENTE');
+    var bgR,bgG,bgB,txtR,txtG,txtB;
+    if(estado==='A TIEMPO')    {bgR=10;bgG=40;bgB=15;txtR=80;txtG=220;txtB=100;}
+    else if(estado==='CON DEMORA'){bgR=50;bgG=10;bgB=10;txtR=248;txtG=80;txtB=80;}
+    else if(estado==='EN CAMINO'){bgR=30;bgG=25;bgB=5;txtR=240;txtG=160;txtB=40;}
+    else                       {bgR=20;bgG=20;bgB=20;txtR=130;txtG=130;txtB=130;}
+    // Fondo badge
+    doc.setFillColor(bgR,bgG,bgB);
+    doc.roundedRect(colX[7], yy-3.5, 24, 5.5, 1, 1, 'F');
+    doc.setFontSize(7);doc.setFont('helvetica','bold');
+    doc.setTextColor(txtR,txtG,txtB);
+    doc.text(estado, colX[7]+12, yy, {align:'center'});
 
     return yy+7;
   }
