@@ -32,11 +32,21 @@ header::after{content:'';position:absolute;inset:0;background:linear-gradient(90
 .page{display:none;flex:1;overflow:hidden;}
 .page.active{display:flex;}
 #page-geo{align-items:center;justify-content:center;flex-direction:column;gap:16px;}
-.geo-spinner{width:52px;height:52px;border:3px solid rgba(240,180,41,.15);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite;}
-@keyframes spin{to{transform:rotate(360deg)}}
-.geo-title{font-family:'Bebas Neue',cursive;font-size:28px;letter-spacing:3px;color:var(--gold);}
-.geo-sub{font-size:12px;color:rgba(255,255,255,.35);}
-#geo-prog{font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(240,180,41,.6);}
+.geo-logo-box{font-size:48px;margin-bottom:4px;animation:geobounce 1.2s ease-in-out infinite;}
+@keyframes geobounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.geo-title{font-family:'Bebas Neue',cursive;font-size:42px;letter-spacing:6px;color:var(--gold);text-shadow:0 0 30px rgba(240,180,41,.4);}
+.geo-sub{font-size:11px;color:rgba(255,255,255,.3);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:28px;}
+.geo-steps{display:flex;flex-direction:column;gap:10px;width:280px;margin-bottom:20px;}
+.geo-step{display:flex;align-items:center;gap:10px;padding:9px 14px;border-radius:9px;border:1px solid rgba(255,255,255,.06);background:rgba(255,255,255,.02);transition:all .3s;}
+.geo-step.done{border-color:rgba(34,197,94,.3);background:rgba(34,197,94,.07);}
+.geo-step.active{border-color:rgba(240,180,41,.35);background:rgba(240,180,41,.07);}
+.gstep-icon{font-size:16px;width:22px;text-align:center;}
+.gstep-txt{font-size:11px;color:rgba(255,255,255,.4);transition:color .3s;}
+.geo-step.done .gstep-txt{color:#5fe090;}
+.geo-step.active .gstep-txt{color:var(--gold);}
+.geo-bar-wrap{width:280px;height:4px;background:rgba(255,255,255,.07);border-radius:4px;margin-bottom:12px;overflow:hidden;}
+.geo-bar{height:100%;width:0%;background:linear-gradient(90deg,var(--amber),var(--gold));border-radius:4px;transition:width .4s ease;}
+#geo-prog{font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(240,180,41,.45);}
 #page-config{flex-direction:column;overflow:hidden;}
 .config-header{flex-shrink:0;padding:12px 18px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px;}
 .config-title{font-family:'Bebas Neue',cursive;font-size:19px;letter-spacing:2px;color:var(--gold);}
@@ -53,7 +63,7 @@ header::after{content:'';position:absolute;inset:0;background:linear-gradient(90
 .cetab{padding:14px 8px;cursor:pointer;font-size:10.5px;font-weight:600;color:rgba(255,255,255,.3);border-left:3px solid transparent;transition:all .2s;display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;}
 .cetab.a006{color:var(--r1);border-left-color:var(--r1);background:var(--r1s);}
 .cetab.a225{color:var(--r2);border-left-color:var(--r2);background:var(--r2s);}
-.config-unassigned{width:185px;flex-shrink:0;border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;}
+.config-unassigned{width:210px;flex-shrink:0;border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;}
 .zone-title{flex-shrink:0;padding:9px 11px 5px;font-size:8px;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,.2);font-weight:600;}
 .unassigned-drop{flex:1;overflow-y:auto;padding:4px 7px 8px;display:flex;flex-direction:column;gap:4px;}
 .unassigned-drop.drag-over{background:rgba(255,255,255,.04);border-radius:8px;}
@@ -63,16 +73,13 @@ header::after{content:'';position:absolute;inset:0;background:linear-gradient(90
 .chip-suc{font-family:'Bebas Neue',cursive;font-size:17px;line-height:1;}
 .chip-dir{font-size:9px;color:rgba(255,255,255,.38);flex:1;line-height:1.3;}
 .chip-handle{font-size:11px;color:rgba(255,255,255,.18);}
-.config-trucks{flex:1;overflow:auto;padding:8px 12px;display:flex;flex-direction:column;gap:8px;}
-.truck-zone{border:1px solid rgba(255,255,255,.07);border-radius:10px;overflow:hidden;}
+..config-trucks{flex:1;overflow:auto;padding:8px 12px;display:grid;grid-template-columns:repeat(2,1fr);gap:8px;align-content:start;}
+.truck-zone{border:1px solid rgba(255,255,255,.07);border-radius:10px;overflow:hidden;min-height:140px;display:flex;flex-direction:column;}
 .truck-zone-header{padding:7px 11px;display:flex;align-items:center;gap:7px;border-bottom:1px solid rgba(255,255,255,.05);}
 .truck-zone-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
 .truck-zone-name{font-size:11px;font-weight:700;flex:1;}
-.patente-input{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);border-radius:5px;color:var(--cream);font-size:10px;padding:2px 7px;width:75px;margin-left:auto;margin-right:6px;font-family:inherit;text-transform:uppercase;}
-.patente-input:focus{outline:none;border-color:var(--gold);}
-body.light .patente-input{background:rgba(0,0,0,.06);border-color:rgba(0,0,0,.2);color:#1a1208;}
 .truck-zone-count{font-size:9.5px;color:rgba(255,255,255,.28);}
-.truck-drop{min-height:54px;padding:5px 7px;display:flex;flex-direction:column;gap:4px;transition:background .15s;}
+.truck-drop{flex:1;min-height:90px;padding:8px 10px;display:flex;flex-direction:column;gap:5px;transition:background .15s;}
 .truck-drop.drag-over{background:rgba(255,255,255,.05);}
 .truck-drop-empty{font-size:9.5px;color:rgba(255,255,255,.16);padding:10px 6px;text-align:center;border:1px dashed rgba(255,255,255,.07);border-radius:6px;}
 .truck-chip{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:6px;padding:6px 9px;cursor:grab;display:flex;align-items:center;gap:7px;transition:all .15s;user-select:none;}
@@ -197,7 +204,7 @@ body.light .patente-input{background:rgba(0,0,0,.06);border-color:rgba(0,0,0,.2)
 .leaflet-control-zoom a{background:#130e05 !important;color:#f0ebe0 !important;border-color:rgba(255,255,255,.1) !important;}
 .leaflet-bar{border:1px solid rgba(255,255,255,.08) !important;}
 
-@media (max-width:640px){
+@media(max-width:640px){
   header{position:fixed;top:0;left:0;right:0;z-index:1000;height:auto;min-height:48px;padding:6px 10px;}
   body{padding-top:48px;}
   .logo-box{width:28px;height:28px;font-size:15px;flex-shrink:0;}
@@ -207,10 +214,11 @@ body.light .patente-input{background:rgba(0,0,0,.06);border-color:rgba(0,0,0,.2)
   .view-btn{padding:4px 8px;font-size:9.5px;}
   .live-pill{display:none;}
   .hdr-clock{font-size:11px;padding:2px 6px;}
-  #page-config{flex-direction:column;overflow-y:auto;}
+  #page-config{flex-direction:column;overflow-y:auto;max-height:100%;}
+
   .config-body{flex-direction:column;overflow-y:visible;}
   .config-elab-tabs{width:100%;flex-direction:row;border-right:none;border-bottom:1px solid var(--border);overflow-x:auto;}
-  .cetab{flex-direction:row;padding:9px 14px;border-left:none;border-bottom:3px solid transparent;min-width:120px;}
+  .cetab{flex-direction:column;align-items:center;text-align:center;padding:8px 6px;border-left:none;border-bottom:3px solid transparent;flex:1;gap:4px;}
   .cetab.a006{border-left:none;border-bottom-color:var(--r1);}
   .cetab.a225{border-left:none;border-bottom-color:var(--r2);}
   .btn-celab{width:auto;padding:3px 10px;font-size:8px;}
@@ -219,9 +227,11 @@ body.light .patente-input{background:rgba(0,0,0,.06);border-color:rgba(0,0,0,.2)
   .suc-chip{padding:6px 10px;min-width:80px;}
   .chip-handle{display:none;}
   .config-map{display:none;}
-  #page-op{flex-direction:column;}
-  .sidebar{width:100%;max-height:55vh;border-right:none;border-bottom:1px solid var(--border);}
-  .map-wrap{flex:none;height:320px;}
+  #page-op{flex-direction:column;overflow:hidden;height:100%;}
+
+  #page-chofer{overflow-y:auto;height:100%;}
+  .sidebar{width:100%;overflow-y:auto;max-height:55vh;border-right:none;border-bottom:1px solid var(--border);}
+  .map-wrap{flex:1;min-height:280px;}
   .map-legend{display:none;}
   .card{padding:10px 11px;}
   .btn-next{padding:8px;font-size:10px;}
@@ -232,56 +242,206 @@ body.light .patente-input{background:rgba(0,0,0,.06);border-color:rgba(0,0,0,.2)
 body.light{--dark:#d6c99a;--panel:#c8ba88;--cream:#1a1208;--border:rgba(0,0,0,.18);--amber:#8a5200;--gold:#7a4800;background:#d6c99a;color:#1a1208;}
 body.light header{background:#b8a870;border-bottom-color:rgba(90,52,0,.4);}
 body.light .logo-box{background:#7a4800;}
-body.light .logo-text h1,body.light .config-title,body.light .geo-title{color:#7a4800;}
+body.light .logo-text h1,body.light .config-title{color:#7a4800;}
 body.light .view-btn{border-color:rgba(0,0,0,.2);color:rgba(0,0,0,.55);background:rgba(255,255,255,.15);}
 body.light .view-btn.active{background:#7a4800;border-color:#7a4800;color:#fff;}
 body.light .hdr-clock{color:#5a3400;background:rgba(90,52,0,.12);border-color:rgba(90,52,0,.3);}
-body.light .live-pill{color:#166534;} body.light .pdot{background:#166534;}
 body.light .cetab.a006{color:#b84000;border-left-color:#b84000;background:rgba(184,64,0,.08);}
 body.light .cetab.a225{color:#3730a3;border-left-color:#3730a3;background:rgba(55,48,163,.08);}
-body.light .etab.a006{color:#b84000;border-bottom-color:#b84000;background:rgba(184,64,0,.08);}
-body.light .etab.a225{color:#3730a3;border-bottom-color:#3730a3;background:rgba(55,48,163,.08);}
 body.light .suc-chip,body.light .truck-chip{background:#e8d8a8;border-color:rgba(0,0,0,.2);color:#1a1208;}
-body.light .chip-suc,body.light .tc-suc{color:#b84000;}
-body.light .chip-dir,body.light .tc-dir,body.light .tc-eta{color:rgba(0,0,0,.6);}
+body.light .chip-suc{color:#b84000;}
+body.light .chip-dir{color:rgba(0,0,0,.6);}
 body.light .truck-zone{border-color:rgba(0,0,0,.2);}
 body.light .truck-zone-header{background:#b8a870;}
-body.light .truck-drop-empty{color:rgba(0,0,0,.4);border-color:rgba(0,0,0,.18);}
-body.light .sidebar,body.light .config-elab-tabs,body.light .chofer-selector{background:#c8ba88;}
+body.light .sidebar,body.light .config-elab-tabs{background:#c8ba88;}
 body.light .card{background:#e8d8a8;border-color:rgba(0,0,0,.18);color:#1a1208;}
-body.light .card:hover{background:#d4c080;}
-body.light .card.selected{background:rgba(90,52,0,.14);border-color:rgba(90,52,0,.45);}
 body.light .card-dir{color:rgba(0,0,0,.65);}
 body.light .badge.pendiente{background:rgba(0,0,0,.1);color:rgba(0,0,0,.55);}
-body.light .camion-row{background:rgba(0,0,0,.07);border-color:rgba(0,0,0,.15);}
-body.light .camion-row.sel-truck{background:rgba(90,52,0,.12);border-color:rgba(90,52,0,.4);}
-body.light .stat-lbl{color:rgba(0,0,0,.55);} body.light .stat-num{color:#1a1208;}
 body.light .btn-celab.ready{background:rgba(122,72,0,.25);border-color:rgba(122,72,0,.7);color:#4a2800;font-weight:800;}
 body.light .btn-celab.done{background:rgba(22,101,52,.2);border-color:rgba(22,101,52,.55);color:#14532d;font-weight:800;}
 body.light .modal-box,body.light .reset-box,body.light .toast{background:#d6c99a;}
-body.light .modal-box{border-color:rgba(90,52,0,.4);}
 body.light .modal-title,body.light .reset-title{color:#5a3400;}
-body.light .map-legend{background:rgba(200,186,136,.97);border-color:rgba(0,0,0,.2);}
 body.light .pdf-btn{border-color:rgba(90,52,0,.45);background:rgba(90,52,0,.1);color:#4a2800;}
 body.light .xlsx-btn{border-color:rgba(22,101,52,.4);background:rgba(22,101,52,.1);color:#14532d;}
 body.light .parada-card{background:#e8d8a8;border-color:rgba(0,0,0,.18);}
 body.light .chofer-btn{color:rgba(0,0,0,.6);background:rgba(0,0,0,.06);border-color:rgba(0,0,0,.2);}
-.vuelta-selector{display:flex;align-items:center;gap:3px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:2px 4px;}
-.vuelta-btn{background:transparent;border:none;color:rgba(255,255,255,.45);font-size:10px;font-weight:700;padding:3px 8px;border-radius:16px;cursor:pointer;font-family:inherit;transition:all .2s;}
-.vuelta-btn.active{background:var(--gold);color:#110800;}
-.vuelta-btn:hover:not(.active){color:rgba(255,255,255,.8);}
-body.light .vuelta-selector{background:rgba(0,0,0,.07);border-color:rgba(0,0,0,.18);}
-body.light .vuelta-btn{color:rgba(0,0,0,.4);}
-body.light .vuelta-btn.active{background:#7a4800;color:#fff;}
-.cerrar-vuelta-btn{background:rgba(240,180,41,.15);border:1px solid rgba(240,180,41,.4);border-radius:20px;color:var(--gold);font-size:9.5px;font-weight:700;padding:4px 10px;cursor:pointer;font-family:inherit;transition:all .2s;white-space:nowrap;}
-.cerrar-vuelta-btn:hover{background:rgba(240,180,41,.3);}
-body.light .cerrar-vuelta-btn{background:rgba(122,72,0,.12);border-color:rgba(122,72,0,.4);color:#7a4800;}
+
 .theme-btn{background:transparent;border:1px solid rgba(255,255,255,.22);border-radius:20px;color:rgba(255,255,255,.7);font-size:15px;width:30px;height:30px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;flex-shrink:0;padding:0;}
 .theme-btn:hover{border-color:var(--gold);}
+.eta-chip.late{background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.3);color:#fca5a5;}
+.eta-chip.ontime{background:rgba(34,197,94,.1);border-color:rgba(34,197,94,.25);color:#86efac;}
+.tap-sel{outline:2px solid var(--gold);outline-offset:1px;background:rgba(240,180,41,.12) !important;}
 body.light .theme-btn{border-color:rgba(0,0,0,.25);color:rgba(0,0,0,.6);}
+.patente-input{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);border-radius:5px;color:var(--cream);font-size:10px;padding:2px 7px;width:75px;margin-left:auto;margin-right:6px;font-family:inherit;text-transform:uppercase;}
+.patente-input:focus{outline:none;border-color:var(--gold);}
+body.light .patente-input{background:rgba(0,0,0,.06);border-color:rgba(0,0,0,.2);color:#1a1208;}
+
+
+
+.evbtn{background:transparent;border:1px solid rgba(255,255,255,.15);border-radius:10px;color:rgba(255,255,255,.35);font-size:8px;font-weight:700;padding:2px 5px;cursor:pointer;font-family:inherit;transition:all .15s;}
+.evbtn.active{background:var(--gold);border-color:var(--gold);color:#110800;}
+.evbtn:hover:not(.active):not(:disabled){border-color:rgba(255,255,255,.4);color:rgba(255,255,255,.7);}
+body.light .evbtn{border-color:rgba(0,0,0,.2);color:rgba(0,0,0,.4);}
+body.light .evbtn.active{background:#7a4800;border-color:#7a4800;color:#fff;}
+.cerrar-vuelta-btn{background:rgba(240,180,41,.15);border:1px solid rgba(240,180,41,.4);border-radius:6px;color:var(--gold);font-size:8px;font-weight:700;padding:3px 6px;cursor:pointer;font-family:inherit;margin-top:5px;width:100%;text-align:center;display:none;}
+.cerrar-vuelta-btn:hover{background:rgba(240,180,41,.3);}
+body.light .cerrar-vuelta-btn{background:rgba(122,72,0,.12);border-color:rgba(122,72,0,.4);color:#7a4800;}
+@keyframes dashMove{to{stroke-dashoffset:-20;}}
+.animated-route{animation:dashMove 0.6s linear infinite;}
+
+body.light .zone-title{color:rgba(0,0,0,.45);}
+body.light .truck-zone-name{color:inherit;}
+body.light .truck-zone-count{color:rgba(0,0,0,.45);}
+body.light .truck-drop-empty{color:rgba(0,0,0,.38);border-color:rgba(0,0,0,.15);}
+body.light .tc-orden{color:rgba(0,0,0,.3);}
+body.light .tc-dir{color:rgba(0,0,0,.55);}
+body.light .tc-eta{color:rgba(0,0,0,.4);}
+body.light .tc-remove{color:rgba(0,0,0,.3);}
+body.light .config-subtitle{color:rgba(0,0,0,.45);}
+body.light #conf-status{color:rgba(0,0,0,.4);}
+body.light .list-hdr{color:rgba(0,0,0,.45);}
+body.light .cam-stops{color:rgba(0,0,0,.4);}
+body.light .leg-row span{color:rgba(0,0,0,.55);}
+body.light .leg-title{color:rgba(0,0,0,.4);}
+body.light .map-legend{background:rgba(200,186,136,.97);border-color:rgba(0,0,0,.2);}
+body.light .parada-num{color:rgba(0,0,0,.4);}
+body.light .parada-dir{color:rgba(0,0,0,.55);}
+body.light .time-lbl{color:rgba(0,0,0,.4);}
+body.light .meta-tag{color:rgba(0,0,0,.45);background:rgba(0,0,0,.06);}
+body.light .card-suc small{color:rgba(0,0,0,.4);}
+body.light .modal-dir{color:rgba(0,0,0,.55);}
+body.light .modal-ts{color:rgba(0,0,0,.45);}
+body.light .modal-suc{color:#1a1208;}
+body.light .reset-sub{color:rgba(0,0,0,.55);}
+body.light .geo-sub{color:rgba(0,0,0,.45);}
+body.light #geo-prog{color:rgba(122,72,0,.7);}
+body.light .stat-lbl{color:rgba(0,0,0,.5);}
+body.light .stat-num{color:#1a1208;}
+body.light .cam-name{color:inherit;}
+body.light .chip-handle{color:rgba(0,0,0,.3);}
+body.light .etab{color:rgba(0,0,0,.4);}
+body.light .cetab{color:rgba(0,0,0,.4);}
+body.light .btn-celab{color:rgba(0,0,0,.3);border-color:rgba(0,0,0,.15);}
+body.light .parada-suc{color:inherit;}
+body.light .time-val{color:#166534;}
+body.light .time-val.empty{color:rgba(0,0,0,.2);}
+body.light .eta-chip{color:#1d4ed8;background:rgba(29,78,216,.08);border-color:rgba(29,78,216,.2);}
+
+body.light .truck-zone{background:#c8b87a;border-color:rgba(0,0,0,.25);}
+body.light .truck-zone-header{background:#b8a860;}
+body.light .truck-zone-name{color:#2a1800 !important;}
+body.light .truck-zone-count{color:#3a2400 !important;}
+body.light .truck-drop{background:#c8b87a;}
+body.light .truck-drop-empty{color:#3a2400;border-color:rgba(0,0,0,.25);}
+body.light .patente-input{color:#1a0800 !important;background:rgba(255,255,255,.5);border-color:rgba(0,0,0,.35);}
+body.light .patente-input::placeholder{color:rgba(0,0,0,.4);}
+body.light .suc-chip{background:#ddd0a0;border-color:rgba(0,0,0,.25);}
+body.light .chip-suc{color:#8a2000 !important;}
+body.light .chip-dir{color:#2a1800 !important;}
+body.light .chip-handle{color:rgba(0,0,0,.4);}
+body.light .unassigned-drop{background:#c8b87a;}
+body.light .zone-title{color:#2a1800 !important;}
+body.light .config-elab-tabs{background:#b8a860;}
+body.light .cetab{color:#2a1800 !important;}
+body.light .cetab.a006{color:#8a2000 !important;}
+body.light .cetab.a225{color:#1e1a7a !important;}
+body.light .btn-celab{color:#2a1800 !important;border-color:rgba(0,0,0,.3);}
+body.light .evbtn{color:#2a1800 !important;border-color:rgba(0,0,0,.3);}
+body.light .config-subtitle{color:#2a1800 !important;}
+body.light #conf-status{color:#2a1800 !important;}
+body.light .geo-title{color:#5a2800 !important;}
+body.light .geo-sub{color:#2a1800 !important;}
+body.light #geo-prog{color:#5a2800 !important;}
+body.light .hdr-center .view-btn{color:#2a1800 !important;}
+body.light .live-pill{color:#1a5c30 !important;}
+body.light .pdot{background:#1a5c30 !important;}
+
+#page-config-wrapper{display:none;position:fixed;top:52px;left:0;right:0;bottom:0;z-index:500;overflow-y:auto;background:var(--dark);flex-direction:column;}
+@media(max-width:640px){
+  #page-config-wrapper{top:48px;}
+}
+body.light #page-config-wrapper{background:var(--dark);}
+
+.admin-overlay{position:fixed;inset:0;z-index:9998;background:rgba(9,7,5,.95);backdrop-filter:blur(12px);display:none;align-items:center;justify-content:center;flex-direction:column;}
+.admin-overlay.open{display:flex;}
+.admin-box{background:#120d05;border:1px solid rgba(240,180,41,.3);border-radius:16px;padding:28px 24px;width:92%;max-width:480px;max-height:88vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;}
+.admin-title{font-family:'Bebas Neue',cursive;font-size:22px;letter-spacing:2px;color:var(--gold);display:flex;align-items:center;gap:8px;}
+.admin-section{border:1px solid rgba(255,255,255,.07);border-radius:10px;overflow:hidden;}
+.admin-section-title{padding:9px 13px;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,.3);font-weight:600;background:rgba(255,255,255,.03);border-bottom:1px solid rgba(255,255,255,.06);}
+.admin-elab-row{padding:10px 13px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(255,255,255,.05);}
+.admin-elab-row:last-child{border-bottom:none;}
+.admin-elab-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+.admin-elab-name{font-size:11px;font-weight:600;flex:1;}
+.admin-trucks-ctrl{display:flex;align-items:center;gap:6px;}
+.admin-ctrl-btn{width:24px;height:24px;border-radius:50%;border:1px solid rgba(255,255,255,.2);background:transparent;color:rgba(255,255,255,.6);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit;transition:all .15s;}
+.admin-ctrl-btn:hover{border-color:var(--gold);color:var(--gold);}
+.admin-truck-num{font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:600;color:var(--gold);min-width:20px;text-align:center;}
+.admin-suc-grid{padding:10px 13px;display:flex;flex-direction:column;gap:6px;}
+.admin-suc-row{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:7px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);}
+.admin-suc-id{font-family:'Bebas Neue',cursive;font-size:17px;line-height:1;min-width:38px;}
+.admin-suc-dir{font-size:9px;color:rgba(255,255,255,.4);flex:1;line-height:1.3;}
+.admin-suc-select{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);border-radius:5px;color:var(--cream);font-size:10px;padding:3px 6px;font-family:inherit;cursor:pointer;}
+.admin-suc-select:focus{outline:none;border-color:var(--gold);}
+.admin-btns{display:flex;gap:8px;}
+.admin-save-btn{flex:1;padding:10px;border-radius:8px;border:1px solid rgba(240,180,41,.4);background:rgba(240,180,41,.15);color:var(--gold);font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;text-transform:uppercase;letter-spacing:1px;transition:all .2s;}
+.admin-save-btn:hover{background:rgba(240,180,41,.28);}
+.admin-cancel-btn{padding:10px 16px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:transparent;color:rgba(255,255,255,.35);font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s;}
+.admin-pin-box{display:flex;flex-direction:column;gap:12px;align-items:center;padding:8px 0;}
+.admin-pin-input{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);border-radius:8px;color:var(--cream);font-size:22px;padding:10px 16px;width:160px;text-align:center;letter-spacing:6px;font-family:'JetBrains Mono',monospace;}
+.admin-pin-input:focus{outline:none;border-color:var(--gold);}
+.admin-pin-err{font-size:10px;color:#f87171;display:none;}
+body.light .admin-box{background:#d6c99a;border-color:rgba(90,52,0,.3);}
+body.light .admin-suc-row{background:rgba(0,0,0,.04);border-color:rgba(0,0,0,.1);}
+body.light .admin-suc-select{background:rgba(255,255,255,.6);border-color:rgba(0,0,0,.2);color:#1a1208;}
+body.light .admin-ctrl-btn{border-color:rgba(0,0,0,.2);color:rgba(0,0,0,.5);}
+body.light .admin-section{border-color:rgba(0,0,0,.15);}
+body.light .admin-section-title{color:rgba(0,0,0,.4);}
+body.light .admin-elab-name{color:#1a1208;}
+body.light .admin-suc-dir{color:rgba(0,0,0,.5);}
+body.light .admin-pin-input{background:rgba(255,255,255,.6);border-color:rgba(0,0,0,.2);color:#1a1208;}
 </style>
 </head>
 <body>
+<div id="page-config-wrapper" style="display:none;position:fixed;top:52px;left:0;right:0;bottom:0;z-index:500;overflow-y:auto;background:var(--dark);flex-direction:column;">
+<div id="page-config-inner">
+  <div class="config-header">
+    <div>
+      <div class="config-title">⚙️ Configurar Ruta del Día</div>
+      <div class="config-subtitle">Arrastrá cada sucursal al camión — el ETA se calcula automático</div>
+    </div>
+    <span id="conf-status" style="font-size:10px;color:rgba(255,255,255,.3);font-style:italic">Confirmá cada elaboradora por separado</span>
+  </div>
+  <div class="config-body">
+    <div class="config-elab-tabs">
+      <div class="cetab a006" id="cetab-006" onclick="switchConfigElab('006')"><div style="width:9px;height:9px;border-radius:50%;background:var(--r1)"></div><span>Suc. 006</span><div style="width:100%;margin-top:6px"><button id="btn-conf-006" class="btn-celab" onclick="event.stopPropagation();confirmarElab('006')" disabled>Confirmar</button></div>
+        <div style="display:flex;align-items:center;gap:3px;margin-top:5px;width:100%;">
+          <span style="font-size:8px;color:rgba(255,255,255,.3);">V:</span>
+          <button class="evbtn active" id="evbtn-006-1" onclick="event.stopPropagation();setVueltaElab('006',1)">1</button>
+          <button class="evbtn" id="evbtn-006-2" onclick="event.stopPropagation();setVueltaElab('006',2)" disabled style="opacity:.3;cursor:not-allowed">2</button>
+          <button class="evbtn" id="evbtn-006-3" onclick="event.stopPropagation();setVueltaElab('006',3)" disabled style="opacity:.3;cursor:not-allowed">3</button>
+        </div>
+        <button class="cerrar-vuelta-btn" id="btn-cv-006" onclick="event.stopPropagation();pedirCerrarVueltaElab('006')" style="display:none;margin-top:4px;width:100%;font-size:8px;padding:3px;border-radius:5px;">✓ Cerrar V<span id="cv-n-006">1</span></button>
+      </div></div>
+      <div class="cetab" id="cetab-225" onclick="switchConfigElab('225')"><div style="width:9px;height:9px;border-radius:50%;background:var(--r2)"></div><span>Suc. 225</span><div style="width:100%;margin-top:6px"><button id="btn-conf-225" class="btn-celab" onclick="event.stopPropagation();confirmarElab('225')" disabled>Confirmar</button></div>
+        <div style="display:flex;align-items:center;gap:3px;margin-top:5px;width:100%;">
+          <span style="font-size:8px;color:rgba(255,255,255,.3);">V:</span>
+          <button class="evbtn active" id="evbtn-225-1" onclick="event.stopPropagation();setVueltaElab('225',1)">1</button>
+          <button class="evbtn" id="evbtn-225-2" onclick="event.stopPropagation();setVueltaElab('225',2)" disabled style="opacity:.3;cursor:not-allowed">2</button>
+          <button class="evbtn" id="evbtn-225-3" onclick="event.stopPropagation();setVueltaElab('225',3)" disabled style="opacity:.3;cursor:not-allowed">3</button>
+        </div>
+        <button class="cerrar-vuelta-btn" id="btn-cv-225" onclick="event.stopPropagation();pedirCerrarVueltaElab('225')" style="display:none;margin-top:4px;width:100%;font-size:8px;padding:3px;border-radius:5px;">✓ Cerrar V<span id="cv-n-225">1</span></button>
+      </div></div>  </div>
+    <div class="config-unassigned">
+      <div class="zone-title">📦 Sin asignar</div>
+      <div class="unassigned-drop" id="unassigned-drop"></div>
+    </div>
+    <div class="config-trucks" id="config-trucks"></div>
+    <div class="config-map"><div id="map-config"></div></div>
+  </div>
+</div>
+
+</div>
+</div>
 <header>
   <div class="hdr-left">
     <div class="logo-box">🍞</div>
@@ -292,13 +452,7 @@ body.light .theme-btn{border-color:rgba(0,0,0,.25);color:rgba(0,0,0,.6);}
     <button class="view-btn" id="btn-op" onclick="goOp()" disabled>🖥 Operador</button>
     <button class="view-btn" id="btn-chofer" onclick="goChofer()" disabled>🚚 Chofer</button>
   </div>
-  <div class="hdr-right">
-    <div class="vuelta-selector">
-      <button class="vuelta-btn active" id="vbtn-1" onclick="irAVuelta(1)">V1</button>
-      <button class="vuelta-btn" id="vbtn-2" onclick="irAVuelta(2)">V2</button>
-      <button class="vuelta-btn" id="vbtn-3" onclick="irAVuelta(3)">V3</button>
-    </div>
-    <button class="cerrar-vuelta-btn" id="btn-cerrar-vuelta" onclick="pedirCerrarVuelta()" style="display:none">✓ Cerrar Vuelta</button>
+  <div class="hdr-right"><button onclick="abrirAdmin()" style="background:transparent;border:1px solid rgba(255,255,255,.18);border-radius:20px;color:rgba(255,255,255,.5);font-size:10px;font-weight:700;padding:4px 10px;cursor:pointer;font-family:inherit;letter-spacing:.5px;" title="Admin">🔐 Admin</button>
     <button class="theme-btn" id="theme-btn" onclick="toggleTheme()" title="Tema">&#127769;</button>
     <div class="live-pill"><div class="pdot"></div>En Vivo</div>
     <div class="hdr-clock" id="clock">--:--:--</div>
@@ -307,33 +461,17 @@ body.light .theme-btn{border-color:rgba(0,0,0,.25);color:rgba(0,0,0,.6);}
 <div style="display:flex;flex:1;overflow:hidden;flex-direction:column;">
 
 <div class="page active" id="page-geo">
-  <div class="geo-spinner"></div>
-  <div class="geo-title">PanRuta</div>
-  <div class="geo-sub">Ubicando sucursales en el mapa…</div>
+  <div class="geo-logo-box">🚚</div>
+  <div class="geo-title">PANRUTA</div>
+  <div class="geo-sub">Sistema de Entregas — Elaboradoras 006 · 225</div>
+  <div class="geo-steps" id="geo-steps">
+    <div class="geo-step" id="gstep-1"><span class="gstep-icon">⏳</span><span class="gstep-txt">Cargando mapa…</span></div>
+    <div class="geo-step" id="gstep-2"><span class="gstep-icon">📍</span><span class="gstep-txt">Ubicando sucursales…</span></div>
+    <div class="geo-step" id="gstep-3"><span class="gstep-icon">📋</span><span class="gstep-txt">Restaurando rutas del día…</span></div>
+    <div class="geo-step" id="gstep-4"><span class="gstep-icon">🔄</span><span class="gstep-txt">Sincronizando estado…</span></div>
+  </div>
+  <div class="geo-bar-wrap"><div class="geo-bar" id="geo-bar"></div></div>
   <div id="geo-prog">Iniciando…</div>
-  <div id="geo-summary" style="font-size:11px;color:rgba(240,180,41,.6);margin-top:8px;">2 elaboradoras · 11 sucursales · 4 camiones</div>
-</div>
-
-<div class="page" id="page-config">
-  <div class="config-header">
-    <div>
-      <div class="config-title">⚙️ Configurar Ruta del Día</div>
-      <div class="config-subtitle">Arrastrá cada sucursal al camión — el ETA se calcula automático</div>
-    </div>
-    <span id="conf-status" style="font-size:10px;color:rgba(255,255,255,.3);font-style:italic">Confirmá cada elaboradora por separado</span>
-  </div>
-  <div class="config-body">
-    <div class="config-elab-tabs">
-      <div class="cetab a006" id="cetab-006" onclick="switchConfigElab('006')"><div style="width:9px;height:9px;border-radius:50%;background:var(--r1)"></div><span>Suc. 006</span><div style="width:100%;margin-top:6px"><button id="btn-conf-006" class="btn-celab" onclick="event.stopPropagation();confirmarElab('006')" disabled>Confirmar</button></div></div>
-      <div class="cetab" id="cetab-225" onclick="switchConfigElab('225')"><div style="width:9px;height:9px;border-radius:50%;background:var(--r2)"></div><span>Suc. 225</span><div style="width:100%;margin-top:6px"><button id="btn-conf-225" class="btn-celab" onclick="event.stopPropagation();confirmarElab('225')" disabled>Confirmar</button></div></div>
-    </div>
-    <div class="config-unassigned">
-      <div class="zone-title">📦 Sin asignar</div>
-      <div class="unassigned-drop" id="unassigned-drop"></div>
-    </div>
-    <div class="config-trucks" id="config-trucks"></div>
-    <div class="config-map"><div id="map-config"></div></div>
-  </div>
 </div>
 
 <div class="page" id="page-op">
@@ -356,6 +494,7 @@ body.light .theme-btn{border-color:rgba(0,0,0,.25);color:rgba(0,0,0,.6);}
   </div>
   <div class="map-wrap">
     <div id="map-op"></div>
+    <button onclick="centrarMapa()" style="position:absolute;bottom:16px;right:16px;z-index:1000;background:#110800;border:1px solid rgba(240,180,41,.4);border-radius:8px;color:var(--gold);font-size:18px;width:38px;height:38px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.5);" title="Centrar mapa">🎯</button>
     <div class="map-legend">
       <div class="leg-title">Referencias</div>
       <div class="leg-row"><div class="leg-dot" style="background:var(--r1)"></div><span>Elaboradora 006</span></div>
@@ -372,7 +511,6 @@ body.light .theme-btn{border-color:rgba(0,0,0,.25);color:rgba(0,0,0,.6);}
   <div class="chofer-paradas" id="chofer-paradas"></div>
 </div>
 
-</div>
 
 <div id="modal">
   <div class="modal-box">
@@ -392,15 +530,14 @@ body.light .theme-btn{border-color:rgba(0,0,0,.25);color:rgba(0,0,0,.6);}
 <div id="vuelta-modal" style="position:fixed;inset:0;z-index:9996;background:rgba(9,7,5,.92);backdrop-filter:blur(10px);display:none;align-items:center;justify-content:center;">
   <div class="reset-box">
     <div class="reset-icon">🔄</div>
-    <div class="reset-title" id="vuelta-modal-title">Cerrar Vuelta 1</div>
-    <div class="reset-sub" id="vuelta-modal-sub">Se guardará el registro de esta vuelta y las sucursales volverán a pendiente para la siguiente.</div>
+    <div class="reset-title" id="vuelta-modal-title">Cerrar Vuelta</div>
+    <div class="reset-sub" id="vuelta-modal-sub">Se guardará el registro de esta vuelta.</div>
     <div class="reset-btns">
       <button class="reset-btn reset-cancel" onclick="closeVueltaModal()">Cancelar</button>
       <button class="reset-btn reset-ok" onclick="ejecutarCerrarVuelta()">✓ Cerrar Vuelta</button>
     </div>
   </div>
 </div>
-
 <div id="reset-modal">
   <div class="reset-box">
     <div class="reset-icon">🌅</div>
@@ -409,6 +546,36 @@ body.light .theme-btn{border-color:rgba(0,0,0,.25);color:rgba(0,0,0,.6);}
     <div class="reset-btns">
       <button class="reset-btn reset-cancel" onclick="closeResetModal()">Seguir con ayer</button>
       <button class="reset-btn reset-ok" onclick="ejecutarReset()">🔄 Reiniciar</button>
+    </div>
+  </div>
+</div>
+
+
+<div class="admin-overlay" id="admin-overlay">
+  <div class="admin-box" id="admin-box">
+    <div class="admin-title">🔐 Administración</div>
+    <div id="admin-pin-panel" class="admin-pin-box">
+      <div style="font-size:11px;color:rgba(255,255,255,.4);margin-bottom:4px;">Ingresá la contraseña de admin</div>
+      <input class="admin-pin-input" id="admin-pin" type="password" maxlength="20" placeholder="••••" onkeydown="if(event.key==='Enter')verificarPin()"/>
+      <div class="admin-pin-err" id="admin-pin-err">Contraseña incorrecta</div>
+      <div style="display:flex;gap:8px;margin-top:4px;">
+        <button class="admin-save-btn" onclick="verificarPin()">Ingresar</button>
+        <button class="admin-cancel-btn" onclick="cerrarAdmin()">Cancelar</button>
+      </div>
+    </div>
+    <div id="admin-content" style="display:none;flex-direction:column;gap:16px;">
+      <div class="admin-section">
+        <div class="admin-section-title">🚛 Camiones por elaboradora</div>
+        <div id="admin-trucks-panel"></div>
+      </div>
+      <div class="admin-section">
+        <div class="admin-section-title">🏪 Asignación de sucursales</div>
+        <div class="admin-suc-grid" id="admin-suc-panel"></div>
+      </div>
+      <div class="admin-btns">
+        <button class="admin-cancel-btn" onclick="cerrarAdmin()">Cancelar</button>
+        <button class="admin-save-btn" onclick="guardarAdmin()">💾 Guardar cambios</button>
+      </div>
     </div>
   </div>
 </div>
@@ -422,40 +589,250 @@ const STORAGE_KEY_DATE = 'panruta_lastdate';
 
 const ELABS = {
   '006':{id:'006',nombre:'Elaboradora Bahía Blanca',dir:'Bahía Blanca 371, Neuquén',
-    address:'Bahia Blanca 371, Neuquen, Argentina',lat:null,lng:null,
+    address:'Bahia Blanca 371, Neuquen, Argentina',lat:-38.958854,lng:-68.050574,
     color:'#f97316',colorSoft:'rgba(249,115,22,0.13)',numTrucks:2,
     truckNames:['Camión A','Camión B'],truckColors:['#f97316','#fbbf24'],
     sucursales:[
-      {id:1,suc:'162',dir:'Manuel Belgrano 3775',address:'Manuel Belgrano 3775, Neuquen, Argentina',lat:null,lng:null},
-      {id:2,suc:'226',dir:'Almirante Brown 140',address:'Almirante Brown 140, Neuquen, Argentina',lat:-38.95321406392914,lng:-68.0622476864554},
-      {id:3,suc:'229',dir:'Godoy 517',address:'Godoy 517, Neuquen, Argentina',lat:null,lng:null},
-      {id:4,suc:'236',dir:'Godoy 1450',address:'Godoy 1450, Neuquen, Argentina',lat:-38.9385428,lng:-68.1181993},
-      {id:5,suc:'239',dir:'Av. del Trabajador y Collón Curá',address:'Avenida del Trabajador y Collon Cura, Neuquen, Argentina',lat:-38.94422499258933,lng:-68.10221776716865},
-      {id:6,suc:'240',dir:'Manuel Belgrano 2186',address:'Manuel Belgrano 2186, Neuquen, Argentina',lat:-38.950603,lng:-68.0895872},
+      {id:1,suc:'162',dir:'Manuel Belgrano 3775',address:'Manuel Belgrano 3775, Neuquen, Argentina',lat:-38.950200,lng:-68.111512},
+      {id:2,suc:'226',dir:'Almirante Brown 140',address:'Almirante Brown 140, Neuquen, Argentina',lat:-38.953551,lng:-68.062331},
+      {id:3,suc:'229',dir:'Godoy 517',address:'Godoy 517, Neuquen, Argentina',lat:-38.949364,lng:-68.117140},
+      {id:4,suc:'236',dir:'Godoy 1450',address:'Godoy 1450, Neuquen, Argentina',lat:-38.938499,lng:-68.118135},
+      {id:5,suc:'239',dir:'Av. del Trabajador y Collón Curá',address:'Avenida del Trabajador y Collon Cura, Neuquen, Argentina',lat:-38.944156,lng:-68.102200},
+      {id:6,suc:'240',dir:'Manuel Belgrano 2186',address:'Manuel Belgrano 2186, Neuquen, Argentina',lat:-38.95058,lng:-68.089373},
+      {id:12,suc:'068',dir:'Antártida Argentina 1111',address:'Antartida Argentina 1111, Neuquen, Argentina',lat:-38.946101,lng:-68.074119},
     ]},
   '225':{id:'225',nombre:'Elaboradora San Juan',dir:'San Juan 51, Neuquén',
-    address:'San Juan 51, Neuquen, Argentina',lat:null,lng:null,
+    address:'San Juan 51, Neuquen, Argentina',lat:-38.946037,lng:-68.058389,
     color:'#818cf8',colorSoft:'rgba(129,140,248,0.13)',numTrucks:3,
     truckNames:['Camión C','Camión D','Camión E'],truckColors:['#818cf8','#a78bfa','#c4b5fd'],
     sucursales:[
-      {id:7,suc:'232',dir:'Av. Olascoaga 1221',address:'Avenida Olascoaga 1221, Neuquen, Argentina',lat:null,lng:null},
-      {id:8,suc:'233',dir:'Manuel Belgrano 1154',address:'Manuel Belgrano 1154, Neuquen, Argentina',lat:-38.9507142,lng:-68.0753749},
-      {id:9,suc:'235',dir:'Alderete 1985',address:'Alderete 1985, Neuquen, Argentina',lat:null,lng:null},
-      {id:10,suc:'237',dir:'Las Orquídeas 100',address:'Las Orquideas 100, Neuquen, Argentina',lat:null,lng:null},
-      {id:11,suc:'248',dir:'Antártida Argentina 1830',address:'Antartida Argentina 1830, Neuquen, Argentina',lat:null,lng:null},
+      {id:7,suc:'232',dir:'Av. Olascoaga 1221',address:'Avenida Olascoaga 1221, Neuquen, Argentina',lat:-38.969006,lng:-68.059516},
+      {id:8,suc:'233',dir:'Manuel Belgrano 1154',address:'Manuel Belgrano 1154, Neuquen, Argentina',lat:-38.95063,lng:-68.075309},
+      {id:9,suc:'235',dir:'Alderete 1985',address:'Alderete 1985, Neuquen, Argentina',lat:-38.951004,lng:-68.030905},
+      {id:10,suc:'237',dir:'Las Orquídeas 100',address:'Las Orquideas 100, Neuquen, Argentina',lat:-38.932776,lng:-68.073875},
+      {id:11,suc:'248',dir:'Antártida Argentina 1830',address:'Antartida Argentina 1830, Neuquen, Argentina',lat:-38.947530,lng:-68.084675},
     ]}
 };
 
 let paradas={}, trucks={};
-let truckPatentes={};
-let vueltaActual=1;
+let historialVueltas = {}; // {eid: [{vuelta, paradas:[]}]}
 let configElab='006', configTrucks={}, configUnassigned={};
 let opElab='006', selectedCard=null, selTruck=null, selChofer=null;
 let modalPid=null, modalAction=null;
 let mapConfig=null, mapOp=null;
 const leafM={}, routeG={}, confM={};
 
+
+// ── ADMIN ──
+var ADMIN_PASS = 'panruta2026';
+var adminTruckEdits = {};
+var adminSucEdits = {};
+
+function abrirAdmin(){
+  document.getElementById('admin-pin').value='';
+  document.getElementById('admin-pin-err').style.display='none';
+  document.getElementById('admin-pin-panel').style.display='flex';
+  document.getElementById('admin-content').style.display='none';
+  document.getElementById('admin-overlay').classList.add('open');
+  setTimeout(function(){document.getElementById('admin-pin').focus();},100);
+}
+function cerrarAdmin(){
+  document.getElementById('admin-overlay').classList.remove('open');
+}
+function verificarPin(){
+  var pin=document.getElementById('admin-pin').value;
+  if(pin!==ADMIN_PASS){
+    document.getElementById('admin-pin-err').style.display='block';
+    document.getElementById('admin-pin').value=''; return;
+  }
+  document.getElementById('admin-pin-panel').style.display='none';
+  document.getElementById('admin-content').style.display='flex';
+  renderAdminPanel();
+}
+function renderAdminPanel(){
+  adminTruckEdits={};adminSucEdits={};
+  Object.values(ELABS).forEach(function(e){ adminTruckEdits[e.id]=e.numTrucks; });
+  Object.values(ELABS).forEach(function(e){ e.sucursales.forEach(function(s){ adminSucEdits[s.id]=e.id; }); });
+  var tp=document.getElementById('admin-trucks-panel'); tp.innerHTML='';
+  Object.values(ELABS).forEach(function(e){
+    var row=document.createElement('div'); row.className='admin-elab-row';
+    var dot=document.createElement('div'); dot.className='admin-elab-dot'; dot.style.background=e.color;
+    var nm=document.createElement('div'); nm.className='admin-elab-name'; nm.style.color=e.color; nm.textContent='Elaboradora '+e.id;
+    var ctrl=document.createElement('div'); ctrl.className='admin-trucks-ctrl';
+    var bm=document.createElement('button'); bm.className='admin-ctrl-btn'; bm.textContent='-'; bm.setAttribute('data-eid',e.id); bm.setAttribute('data-d','-1');
+    var num=document.createElement('div'); num.className='admin-truck-num'; num.id='atnum-'+e.id; num.textContent=e.numTrucks;
+    var bp=document.createElement('button'); bp.className='admin-ctrl-btn'; bp.textContent='+'; bp.setAttribute('data-eid',e.id); bp.setAttribute('data-d','1');
+    ctrl.appendChild(bm); ctrl.appendChild(num); ctrl.appendChild(bp);
+    row.appendChild(dot); row.appendChild(nm); row.appendChild(ctrl);
+    tp.appendChild(row);
+  });
+  tp.onclick=function(ev){
+    var btn=ev.target.getAttribute&&ev.target.getAttribute('data-eid')?ev.target:null;
+    if(!btn) return;
+    cambiarCamiones(btn.getAttribute('data-eid'),Number(btn.getAttribute('data-d')));
+  };
+  var sp=document.getElementById('admin-suc-panel'); sp.innerHTML='';
+  var todasSuc=[];
+  Object.values(ELABS).forEach(function(e){ e.sucursales.forEach(function(s){ todasSuc.push({s:s,elabId:e.id,color:e.color}); }); });
+  todasSuc.sort(function(a,b){ return Number(a.s.suc)-Number(b.s.suc); });
+  todasSuc.forEach(function(item){
+    var row=document.createElement('div'); row.className='admin-suc-row';
+    var sd=document.createElement('div'); sd.className='admin-suc-id'; sd.style.color=item.color; sd.textContent=item.s.suc;
+    var dd=document.createElement('div'); dd.className='admin-suc-dir'; dd.textContent=item.s.dir;
+    var sel=document.createElement('select'); sel.className='admin-suc-select';
+    Object.values(ELABS).forEach(function(e){
+      var opt=document.createElement('option'); opt.value=e.id; opt.textContent=e.id;
+      if(e.id===item.elabId) opt.selected=true;
+      sel.appendChild(opt);
+    });
+    (function(sid){ sel.addEventListener('change',function(){ adminSucEdits[sid]=this.value; }); })(item.s.id);
+    row.appendChild(sd); row.appendChild(dd); row.appendChild(sel);
+    sp.appendChild(row);
+  });
+}
+function cambiarCamiones(eid,delta){
+  var n=(adminTruckEdits[eid]||ELABS[eid].numTrucks)+delta;
+  if(n<1)n=1; if(n>6)n=6; adminTruckEdits[eid]=n;
+  var el=document.getElementById('atnum-'+eid); if(el)el.textContent=n;
+}
+function guardarAdmin(){
+  var cambiado=false;
+  Object.keys(adminTruckEdits).forEach(function(eid){
+    var e=ELABS[eid]; if(!e) return;
+    var nv=adminTruckEdits[eid];
+    if(nv!==e.numTrucks){
+      cambiado=true; e.numTrucks=nv;
+      var L=['A','B','C','D','E','F'];
+      var cols={'006':['#f97316','#fbbf24','#fb923c','#f59e0b','#ea580c','#d97706'],'225':['#818cf8','#a78bfa','#c4b5fd','#7c3aed','#6366f1','#8b5cf6']};
+      e.truckNames=[]; e.truckColors=[];
+      for(var i=0;i<nv;i++){ e.truckNames.push('Camion '+L[i]); e.truckColors.push((cols[eid]||cols['006'])[i]||'#f97316'); }
+    }
+  });
+  Object.keys(adminSucEdits).forEach(function(sid){
+    var newEid=adminSucEdits[sid],oldEid=null,sucObj=null;
+    Object.values(ELABS).forEach(function(e){
+      var ix=e.sucursales.findIndex(function(s){ return String(s.id)===String(sid); });
+      if(ix>=0){oldEid=e.id;sucObj=e.sucursales[ix];}
+    });
+    if(oldEid&&oldEid!==newEid&&sucObj){
+      cambiado=true;
+      ELABS[oldEid].sucursales=ELABS[oldEid].sucursales.filter(function(s){ return String(s.id)!==String(sid); });
+      ELABS[newEid].sucursales.push(sucObj);
+    }
+  });
+  if(cambiado){
+    elabsConfirmadas={'006':false,'225':false};
+    paradas={};trucks={};
+    initConfig();
+    gsGuardarConfigAdmin();
+    toast('Cambios guardados — reconfigura las rutas','âš™');
+  }
+  cerrarAdmin();
+}
+function gsGuardarConfigAdmin(){
+  var data={action:'saveAdminConfig',elabs:{}};
+  Object.values(ELABS).forEach(function(e){
+    data.elabs[e.id]={numTrucks:e.numTrucks,truckNames:e.truckNames,truckColors:e.truckColors,
+      sucursales:e.sucursales.map(function(s){ return s.id; })};
+  });
+  gsPost(data);
+}
+function gsCargarConfigAdmin(){
+  fetch(GS_URL+'?action=getAdminConfig')
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      if(!data.ok || !data.elabs) return; // sin config → usar defaults del código
+      // Recopilar TODAS las sucursales originales
+      var todasSuc = [];
+      Object.values(ELABS).forEach(function(e){ todasSuc = todasSuc.concat(e.sucursales); });
+      // Limpiar sucursales actuales
+      Object.values(ELABS).forEach(function(e){ e.sucursales = []; });
+      // Reasignar según config guardada
+      Object.keys(data.elabs).forEach(function(eid){
+        var e = ELABS[eid]; if(!e) return;
+        var cfg = data.elabs[eid];
+        if(cfg.numTrucks) e.numTrucks = Number(cfg.numTrucks);
+        // Reconstruir truckNames/Colors según numTrucks
+        var letras = ['A','B','C','D','E','F'];
+        var cols = {'006':['#f97316','#fbbf24','#fb923c','#f59e0b','#ea580c','#d97706'],
+                    '225':['#818cf8','#a78bfa','#c4b5fd','#7c3aed','#6366f1','#8b5cf6']};
+        e.truckNames = []; e.truckColors = [];
+        for(var i=0;i<e.numTrucks;i++){
+          e.truckNames.push('Camión '+letras[i]);
+          e.truckColors.push((cols[eid]||cols['006'])[i]||'#f97316');
+        }
+        // Reasignar sucursales
+        if(cfg.sucursales && cfg.sucursales.length){
+          cfg.sucursales.forEach(function(sid){
+            var suc = todasSuc.find(function(s){ return String(s.id)===String(sid); });
+            if(suc) e.sucursales.push(suc);
+          });
+        }
+      });
+      initConfig();
+    }).catch(function(e){ console.warn('gsCargarConfigAdmin error:',e); });
+}
+
+
+// ── TAP MOBILE ──
+var tapSid = null, tapFromTid = null;
+
+function tapSelectSuc(sid, fromTid){
+  if(tapSid === sid){ tapSid=null; tapFromTid=null; safeRenderConfig(); return; }
+  tapSid = sid; tapFromTid = fromTid || null;
+  safeRenderConfig();
+}
+function tapDropToTruck(tid){
+  if(!tapSid) return;
+  var sid = tapSid; tapSid=null; tapFromTid=null;
+  moveSucToTruck(sid, tid);
+}
+function tapDropToUnassigned(){
+  if(!tapSid) return;
+  var sid = tapSid; tapSid=null; tapFromTid=null;
+  moveSucToUnassigned(sid);
+}
+function moveSucToTruck(sid, tid){
+  var eid = trucks[tid]?trucks[tid].elabId:null; if(!eid) return;
+  // Quitar de donde esté
+  Object.keys(configTrucks).forEach(function(t){ configTrucks[t]=configTrucks[t].filter(function(s){ return String(s)!==String(sid); }); });
+  configUnassigned[eid]=configUnassigned[eid].filter(function(s){ return String(s)!==String(sid); });
+  if(!configTrucks[tid]) configTrucks[tid]=[];
+  configTrucks[tid].push(String(sid));
+  safeRenderConfig(); updateConfigMap && updateConfigMap();
+}
+function moveSucToUnassigned(sid){
+  var eid = null;
+  Object.keys(trucks).forEach(function(t){ if(configTrucks[t]&&configTrucks[t].indexOf(String(sid))>=0) eid=trucks[t].elabId; });
+  if(!eid) Object.keys(ELABS).forEach(function(e){ if(ELABS[e].sucursales.find(function(s){ return String(s.id)===String(sid); })) eid=e; });
+  if(!eid) return;
+  Object.keys(configTrucks).forEach(function(t){ configTrucks[t]=configTrucks[t].filter(function(s){ return String(s)!==String(sid); }); });
+  if(!configUnassigned[eid]) configUnassigned[eid]=[];
+  if(configUnassigned[eid].indexOf(String(sid))<0) configUnassigned[eid].push(String(sid));
+  safeRenderConfig(); updateConfigMap && updateConfigMap();
+}
+
 // ── ETA ──
+
+function recalcEtasParadas(){
+  // Para cada truck, recalcular ETA de cada parada desde elab → suc1 → suc2 → ...
+  Object.values(trucks).forEach(function(truck){
+    var elab = ELABS[truck.elabId]; if(!elab||!elab.lat) return;
+    var prev = {lat:elab.lat, lng:elab.lng};
+    truck.paradaIds.forEach(function(pid){
+      var p = paradas[pid]; if(!p) return;
+      // Actualizar lat/lng desde sucursales si falta
+      if(!p.lat){
+        var suc = elab.sucursales.find(function(s){ return String(s.id)===String(pid)||String(s.suc)===String(p.suc); });
+        if(suc&&suc.lat){ p.lat=suc.lat; p.lng=suc.lng; }
+      }
+      if(p.lat && prev.lat){
+        p.etaMin = Math.round(haversineKm(prev, p) * 1.35 / VELOCIDAD_KMH * 60);
+      }
+      if(p.lat) prev = {lat:p.lat, lng:p.lng};
+    });
+  });
+}
 function haversineKm(a,b){
   const R=6371,dLat=(b.lat-a.lat)*Math.PI/180,dLng=(b.lng-a.lng)*Math.PI/180;
   const x=Math.sin(dLat/2)**2+Math.cos(a.lat*Math.PI/180)*Math.cos(b.lat*Math.PI/180)*Math.sin(dLng/2)**2;
@@ -469,9 +846,28 @@ function fmtEta(min){
   if(min===null||min===undefined) return '?';
   return min<60 ? `~${min}min` : `~${Math.floor(min/60)}h${min%60}m`;
 }
+
+function sanitizeTs(val){
+  if(!val) return null;
+  var s = String(val).trim();
+  // Formato HH:MM o HH:MM:SS al inicio
+  var m = s.match(/^(\d{1,2}):(\d{2})/);
+  if(m) return m[1].padStart(2,'0')+':'+m[2];
+  // Buscar patrón HH:MM:SS en cualquier parte del string (ej: "Sat Dec 30 1899 17:01:00 GMT...")
+  var m2 = s.match(/(\d{1,2}):(\d{2}):(\d{2})/);
+  if(m2) return m2[1].padStart(2,'0')+':'+m2[2];
+  // Número serial de Excel (fracción de día entre 0 y 1)
+  var n = parseFloat(s);
+  if(!isNaN(n) && n > 0 && n < 1){
+    var totalMin = Math.round(n * 24 * 60);
+    return String(Math.floor(totalMin/60)%24).padStart(2,'0')+':'+String(totalMin%60).padStart(2,'0');
+  }
+  return null;
+}
 function sumarMin(tsStr,min){
   if(!tsStr||min===null||min===undefined) return null;
   const p=tsStr.split(':').map(Number);
+  if(p.length<2||isNaN(p[0])||isNaN(p[1])) return null;
   const tot=p[0]*60+p[1]+min;
   return String(Math.floor(tot/60)%24).padStart(2,'0')+':'+String(tot%60).padStart(2,'0');
 }
@@ -537,6 +933,14 @@ function buildOpMapWithRoutes(eid){
   if(pts.length) mapOp.fitBounds(pts,{padding:[40,40]});
 }
 
+function centrarMapa(){
+  var pts=[];
+  Object.values(ELABS).forEach(function(e){if(e.lat)pts.push([e.lat,e.lng]);});
+  Object.values(paradas).forEach(function(p){if(p.lat)pts.push([p.lat,p.lng]);});
+  if(pts.length) mapOp.fitBounds(pts,{padding:[40,40]});
+  else mapOp.setView([-38.948,-68.075],12);
+  setTimeout(function(){mapOp.invalidateSize();},100);
+}
 function drawOpLines(){
   Object.values(ELABS).forEach(e=>{
     if(!routeG[e.id]||!e.lat) return;
@@ -553,7 +957,9 @@ function drawOpLines(){
         if(active){
           L.polyline([[prevLat,prevLng],[p.lat,p.lng]],{color:truck.color,weight:1.5,opacity:.18,dashArray:'3,12'}).addTo(routeG[e.id]);
           const midLat=(prevLat+p.lat)/2, midLng=(prevLng+p.lng)/2;
-          L.polyline([[prevLat,prevLng],[midLat,midLng]],{color:truck.color,weight:3,opacity:.95,dashArray:'10,6'}).addTo(routeG[e.id]);
+          const animLine=L.polyline([[prevLat,prevLng],[midLat,midLng]],{color:truck.color,weight:3,opacity:.95,dashArray:'10,6'}).addTo(routeG[e.id]);
+          animLine.on('add',function(){ const el=this.getElement(); if(el) el.classList.add('animated-route'); });
+          try{ const el=animLine.getElement(); if(el) el.classList.add('animated-route'); }catch(ex){}
         } else {
           L.polyline([[prevLat,prevLng],[p.lat,p.lng]],{color:done?'#22c55e':truck.color,weight:done?2:1.5,opacity:done?.8:.2,dashArray:done?null:'3,12'}).addTo(routeG[e.id]);
         }
@@ -571,13 +977,13 @@ function updateConfigMap(){
   Object.entries(configTrucks).filter(([tid])=>tid.startsWith(configElab)).forEach(([tid,ids])=>{
     const tdef=getTruckDef(tid);
     ids.forEach(sid=>{
-      const s=elab.sucursales.find(x=>x.id===sid);
+      const s=elab.sucursales.find(x=>String(x.id)===String(sid));
       if(!s||!s.lat) return;
       confM['s-'+sid]=L.marker([s.lat,s.lng],{icon:makeConfIco(s.suc,tdef.color)}).addTo(mapConfig);
     });
   });
   (configUnassigned[configElab]||[]).forEach(sid=>{
-    const s=elab.sucursales.find(x=>x.id===sid);
+    const s=elab.sucursales.find(x=>String(x.id)===String(sid));
     if(!s||!s.lat) return;
     confM['s-'+sid]=L.marker([s.lat,s.lng],{icon:makeConfIco(s.suc,null)}).addTo(mapConfig);
   });
@@ -587,12 +993,28 @@ function updateConfigMap(){
 
 // ── NAVEGACIÓN ──
 function showPage(id){
-  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  document.getElementById('page-'+id).classList.add('active');
+  // Manejar page-config (está en wrapper fixed)
+  var wrapper = document.getElementById('page-config-wrapper');
+  if(id === 'config'){
+    if(wrapper) wrapper.style.display = 'flex';
+  } else {
+    if(wrapper) wrapper.style.display = 'none';
+  }
+  // Manejar resto de pages normalmente
+  ['geo','op','chofer'].forEach(function(pid){
+    var p = document.getElementById('page-'+pid);
+    if(!p) return;
+    p.classList.remove('active');
+    p.style.display = 'none';
+  });
+  if(id !== 'config'){
+    var pg = document.getElementById('page-'+id);
+    if(pg){ pg.classList.add('active'); pg.style.display = 'flex'; }
+  }
   ['config','op','chofer'].forEach(v=>document.getElementById('btn-'+v).classList.remove('active'));
   if(['config','op','chofer'].includes(id)) document.getElementById('btn-'+id).classList.add('active');
 }
-function goConfig(){showPage('config');setTimeout(()=>{mapConfig.invalidateSize();updateConfigMap();},50);}
+function goConfig(){showPage('config');setTimeout(()=>{try{mapConfig.invalidateSize();updateConfigMap();}catch(e){}},50);}
 function goOp(){showPage('op');setTimeout(()=>mapOp.invalidateSize(),50);renderSidebar();}
 function goChofer(){showPage('chofer');renderChofer();}
 
@@ -605,7 +1027,7 @@ let dragSucId=null, dragFromTid=null;
 
 function initConfig(){
   Object.values(ELABS).forEach(e=>{
-    configUnassigned[e.id]=e.sucursales.map(s=>s.id);
+    configUnassigned[e.id]=e.sucursales.map(s=>String(s.id));
     for(let i=0;i<e.numTrucks;i++) configTrucks[e.id+'-T'+(i+1)]=[];
   });
   renderConfig();
@@ -622,13 +1044,14 @@ function calcEtaChain(elabId,truckId){
   const elab=ELABS[elabId],ids=configTrucks[truckId]||[];
   const etas=[];let prev={lat:elab.lat,lng:elab.lng};
   ids.forEach(sid=>{
-    const s=elab.sucursales.find(x=>x.id===sid);
+    const s=elab.sucursales.find(x=>String(x.id)===String(sid));
     etas.push(etaMin(prev,s));
     prev=s||prev;
   });
   return etas;
 }
 
+function safeRenderConfig(){ try{ renderConfig(); }catch(e){ console.warn("renderConfig err",e); } }
 function renderConfig(){
   const elab=ELABS[configElab];
   const unassigned=configUnassigned[configElab]||[];
@@ -638,14 +1061,16 @@ function renderConfig(){
     ud.innerHTML='<div style="font-size:9.5px;color:rgba(255,255,255,.18);padding:12px 6px;text-align:center">✓ Todas asignadas</div>';
   }
   unassigned.forEach(sid=>{
-    const s=elab.sucursales.find(x=>x.id===sid);if(!s) return;
+    const s=elab.sucursales.find(x=>String(x.id)===String(sid));if(!s) return;
     const el=document.createElement('div');
-    el.className='suc-chip';el.draggable=true;el.dataset.sid=sid;
+    el.className='suc-chip'+(tapSid===sid?' tap-sel':'');el.draggable=true;el.dataset.sid=sid;
     el.innerHTML='<span class="chip-handle">⠿</span><div style="flex:1"><div class="chip-suc" style="color:'+elab.color+'">'+s.suc+'</div><div class="chip-dir">'+s.dir+'</div></div>';
-    el.addEventListener('dragstart',()=>{dragSucId=sid;dragFromTid=null;el.classList.add('dragging');});
+    el.addEventListener('click',()=>tapSelectSuc(sid,null));
+    el.addEventListener('dragstart',()=>{dragSucId=String(sid);dragFromTid=null;el.classList.add('dragging');});
     el.addEventListener('dragend',()=>el.classList.remove('dragging'));
     ud.appendChild(el);
   });
+  ud.addEventListener('click',function(){tapDropToUnassigned();});
   ud.addEventListener('dragover',e=>{e.preventDefault();ud.classList.add('drag-over');});
   ud.addEventListener('dragleave',()=>ud.classList.remove('drag-over'));
   ud.addEventListener('drop',e=>{
@@ -668,15 +1093,17 @@ function renderConfig(){
       drop.innerHTML='<div class="truck-drop-empty">Arrastrá sucursales acá</div>';
     } else {
       ids.forEach((sid,oi)=>{
-        const s=elab.sucursales.find(x=>x.id===sid);if(!s) return;
+        const s=elab.sucursales.find(x=>String(x.id)===String(sid));if(!s) return;
         const etaStr=etas[oi]!==null?fmtEta(etas[oi]):'?';
-        const chip=document.createElement('div');chip.className='truck-chip';chip.draggable=true;
+        const chip=document.createElement('div');chip.className='truck-chip'+(tapSid===sid?' tap-sel':'');chip.draggable=true;
         chip.innerHTML='<div class="tc-orden">'+(oi+1)+'</div><div class="tc-suc" style="color:'+tdef.color+'">'+s.suc+'</div><div class="tc-dir">'+s.dir+'</div><div class="tc-eta">⏱'+etaStr+'</div><button class="tc-remove" onclick="removeFromTruck(\''+tid+'\','+sid+')">✕</button>';
+        chip.addEventListener('click',function(ev){if(!ev.target.classList.contains('tc-remove'))tapSelectSuc(sid,tid);});
         chip.addEventListener('dragstart',()=>{dragSucId=sid;dragFromTid=tid;chip.classList.add('dragging');});
         chip.addEventListener('dragend',()=>chip.classList.remove('dragging'));
         drop.appendChild(chip);
       });
     }
+    drop.addEventListener('click',function(){tapDropToTruck(tid);});
     drop.addEventListener('dragover',e=>{e.preventDefault();drop.classList.add('drag-over');});
     drop.addEventListener('dragleave',()=>drop.classList.remove('drag-over'));
     drop.addEventListener('drop',e=>{
@@ -684,7 +1111,7 @@ function renderConfig(){
       if(dragSucId===null) return;
       if(dragFromTid) configTrucks[dragFromTid]=configTrucks[dragFromTid].filter(x=>x!==dragSucId);
       else configUnassigned[configElab]=configUnassigned[configElab].filter(x=>x!==dragSucId);
-      if(!configTrucks[tid].includes(dragSucId)) configTrucks[tid].push(dragSucId);
+      if(!configTrucks[tid].includes(String(dragSucId))) configTrucks[tid].push(String(dragSucId));
       dragSucId=null;dragFromTid=null;renderConfig();updateConfigMap();checkConfirmBtn();
     });
   });
@@ -721,11 +1148,16 @@ function confirmarElab(eid){
     var tid=e.id+'-T'+(i+1);
     trucks[tid]={name:e.truckNames[i],color:e.truckColors[i],elabId:e.id,paradaIds:[]};
     (configTrucks[tid]||[]).forEach(function(sid,oi){
-      var s=e.sucursales.find(function(x){return x.id===sid;});
-      var etas=calcEtaChain(e.id,tid);
-      paradas[sid]=Object.assign({},s,{elabId:e.id,truckId:tid,truckName:e.truckNames[i],truckColor:e.truckColors[i],
-        orden:oi+1,status:'pendiente',tsInicio:null,tsFin:null,etaMin:etas[oi]});
-      trucks[tid].paradaIds.push(sid);
+      var sidStr = String(sid);
+      var s = e.sucursales.find(function(x){ return String(x.id)===sidStr; });
+      if(!s){ console.warn('Suc no encontrada:', sidStr); return; }
+      var etas = calcEtaChain(e.id,tid);
+      paradas[sidStr] = Object.assign({}, s, {
+        id: sidStr, elabId:e.id, truckId:tid, truckName:e.truckNames[i],
+        truckColor:e.truckColors[i], orden:oi+1,
+        status:'pendiente', tsInicio:null, tsFin:null, etaMin:etas[oi]
+      });
+      trucks[tid].paradaIds.push(sidStr);
     });
   }
   elabsConfirmadas[eid]=true;
@@ -733,11 +1165,122 @@ function confirmarElab(eid){
   document.getElementById('btn-op').disabled=false;
   document.getElementById('btn-chofer').disabled=false;
   checkConfirmBtn();
+  actualizarBtnCerrarVuelta(eid);
+  // Habilitar botón de vuelta siguiente
+  var vNext = document.getElementById('evbtn-'+eid+'-'+(vueltaElab[eid]+1));
+  if(vNext){ vNext.removeAttribute('disabled'); vNext.style.opacity='1'; vNext.style.cursor='pointer'; }
   gsSaveConfig(eid);
-  actualizarBotonesVuelta();
+  actualizarBtnCerrarVuelta(eid);
   toast('Suc. '+eid+' confirmada — ruta pintada en el mapa','🗺️');
 }
 function confirmarConfig(){confirmarElab(configElab);}
+
+// ── GESTIÓN DE VUELTAS ──────────────────────────────────────────────────────
+
+function setVueltaElab(eid, v){
+  // Solo permitir avanzar — no retroceder si ya hay confirmadas
+  vueltaElab[eid] = v;
+  // Actualizar UI de botones de vuelta
+  for(var i=1; i<=3; i++){
+    var btn = document.getElementById('evbtn-'+eid+'-'+i);
+    if(!btn) continue;
+    if(i === v){
+      btn.classList.add('active-vuelta');
+      btn.style.opacity='1'; btn.style.cursor='default';
+    } else if(i < v){
+      btn.style.opacity='0.5'; btn.style.cursor='pointer';
+      btn.removeAttribute('disabled');
+    } else {
+      btn.style.opacity='0.3'; btn.style.cursor='not-allowed';
+      btn.setAttribute('disabled','');
+    }
+  }
+}
+
+function actualizarBtnCerrarVuelta(eid){
+  var btn = document.getElementById('btn-cv-'+eid);
+  if(!btn) return;
+  // Mostrar botón cerrar vuelta solo si la elab está confirmada
+  if(elabsConfirmadas[eid]){
+    btn.style.display = 'block';
+  } else {
+    btn.style.display = 'none';
+  }
+}
+
+function pedirCerrarVueltaElab(eid){
+  var v = vueltaElab[eid]||1;
+  var ps = Object.values(paradas).filter(function(p){ return p.elabId===eid; });
+  var entregadas = ps.filter(function(p){ return p.status==='entregado'; }).length;
+  var total = ps.length;
+  if(!confirm('Cerrar vuelta '+v+' de Suc.'+eid+' ('+entregadas+'/'+total+' entregadas)?\n\nSe guardará en el historial y se habilitará la vuelta '+(v+1)+'.')) return;
+  cerrarVueltaElab(eid);
+}
+
+function cerrarVueltaElab(eid){
+  var v = vueltaElab[eid]||1;
+  // Guardar historial de esta vuelta en Sheets
+  gsSaveHistorialVuelta(v, eid);
+  // Avanzar vuelta
+  vueltaElab[eid] = v + 1;
+  // Limpiar paradas y trucks de esta elab
+  Object.keys(paradas).filter(function(k){ return paradas[k].elabId===eid; })
+    .forEach(function(k){ delete paradas[k]; });
+  Object.keys(trucks).filter(function(k){ return trucks[k].elabId===eid; })
+    .forEach(function(k){ delete trucks[k]; });
+  // Limpiar config
+  var e = ELABS[eid];
+  if(e){
+    configUnassigned[eid] = e.sucursales.map(function(s){ return String(s.id); });
+    for(var i=0; i<e.numTrucks; i++) configTrucks[eid+'-T'+(i+1)] = [];
+  }
+  elabsConfirmadas[eid] = false;
+  // Limpiar líneas del mapa
+  if(routeG[eid]) routeG[eid].clearLayers();
+  Object.keys(leafM).forEach(function(k){
+    if(k.indexOf(eid+'-') === 0){ try{ leafM[k].remove(); }catch(err){} delete leafM[k]; }
+  });
+  // Actualizar UI — saltar al botón de la nueva vuelta
+  setVueltaElab(eid, vueltaElab[eid]);
+  actualizarBtnCerrarVuelta(eid);
+  switchConfigElab(eid);   // mostrar la elab que acaba de cerrar
+  configElab = eid;
+  checkConfirmBtn();
+  document.getElementById('btn-op').disabled = false;
+  document.getElementById('btn-chofer').disabled = false;
+  toast('Vuelta '+v+' cerrada — configurá la vuelta '+(v+1),'✅');
+  showPage('config');
+  document.getElementById('btn-config').classList.add('active');
+  document.getElementById('btn-op').classList.remove('active');
+  document.getElementById('btn-chofer').classList.remove('active');
+}
+
+function gsSaveHistorialVuelta(vuelta, eid){
+  var ps = Object.values(paradas).filter(function(p){ return p.elabId===eid; });
+  if(!ps.length) return;
+  var fecha = hoyStr();
+  // Guardar snapshot en memoria para PDF acumulado
+  if(!historialVueltas[eid]) historialVueltas[eid] = [];
+  historialVueltas[eid].push({
+    vuelta: vuelta,
+    trucks: JSON.parse(JSON.stringify(
+      Object.entries(trucks).filter(function(kv){ return kv[1].elabId===eid; })
+        .reduce(function(acc,kv){ acc[kv[0]]=kv[1]; return acc; }, {})
+    )),
+    paradas: JSON.parse(JSON.stringify(ps))
+  });
+  // Guardar en Sheets
+  var entregas = ps.map(function(p){
+    return {
+      fecha:fecha, elabId:p.elabId, truckId:p.truckId, truckName:p.truckName,
+      sucId:p.id, suc:p.suc, dir:p.dir, orden:p.orden,
+      tsInicio:p.tsInicio||'', tsFin:p.tsFin||'',
+      demora:0, etaMin:p.etaMin||0
+    };
+  });
+  gsPost({action:'saveHistorial', entregas:entregas});
+}
+
 
 // ── OPERADOR ──
 function switchOpElab(id){
@@ -762,9 +1305,19 @@ function getEtaLabel(p){
   const ids=trucks[tid].paradaIds;
   const idx=ids.indexOf(p.id);
   const min=p.etaMin;
-  if(idx===0) return {min,llegada:null,demora:null};
-  const prev=paradas[ids[idx-1]];if(!prev) return null;
-  const llegada=prev.tsInicio?sumarMin(prev.tsInicio,min):null;
+  if(min===null||min===undefined) return null;
+  let baseTs=null;
+  if(idx===0){
+    // Si está en camino, calcular ETA desde su propio tsInicio
+    if(p.tsInicio) baseTs=p.tsInicio;
+    else return {min, llegada:null, demora:null};
+  } else {
+    const prev=paradas[ids[idx-1]];
+    if(!prev) return null;
+    baseTs=prev.tsInicio||null;
+  }
+  // Si hay tsInicio de la anterior, calcular llegada estimada
+  const llegada=baseTs?sumarMin(baseTs,min):null;
   const demora=(llegada&&p.tsInicio)?diffMin(llegada,p.tsInicio):null;
   return {min,llegada,demora};
 }
@@ -839,7 +1392,16 @@ function renderChofer(){
     const p=paradas[pid];if(!p) return;
     const eta=getEtaLabel(p);
     let etaHtml='';
-    if(p.status==='pendiente'&&eta&&eta.llegada) etaHtml='<div class="eta-chip">⏱ Llegada estimada: '+eta.llegada+'</div>';
+    if(eta){
+      if(p.status==='pendiente'){
+        if(eta.llegada) etaHtml='<div class="eta-chip">⏱ Llegada estimada: '+eta.llegada+'</div>';
+        else if(eta.min!==null) etaHtml='<div class="eta-chip">⏱ En aprox. '+fmtEta(eta.min)+'</div>';
+      } else if(p.status==='en-camino'){
+        if(eta.llegada) etaHtml='<div class="eta-chip">⏱ Llegada estimada: '+eta.llegada+'</div>';
+      } else if(p.status==='entregado'){
+        if(eta.demora!==null) etaHtml='<div class="eta-chip '+(eta.demora>5?'late':'ontime')+'">'+(eta.demora>5?'⚠️ +'+eta.demora+'min de demora':'✅ A tiempo')+'</div>';
+      }
+    }
 
     // Botones con validación de parada anterior
     let btn='';
@@ -877,8 +1439,21 @@ function openModal(pid,action){
 function closeModal(){document.getElementById('modal').classList.remove('open');modalPid=null;modalAction=null;}
 function confirmModal(){
   if(!modalPid) return;
-  const p=paradas[modalPid],now=new Date().toLocaleTimeString('es-AR',{hour12:false});
-  if(modalAction==='inicio'){p.status='en-camino';p.tsInicio=now;toast('🚚 Suc. '+p.suc+' — Salió a las '+now,'🚚');}
+  const p=paradas[modalPid],d=new Date(),now=String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+  if(modalAction==='inicio'){
+    p.status='en-camino'; p.tsInicio=now;
+    // Recalcular ETA de esta parada con coords reales al momento de salir
+    const truck=trucks[p.truckId];
+    if(truck){
+      const ids=truck.paradaIds, idx=ids.indexOf(p.id);
+      const elab=ELABS[p.elabId];
+      const prevP = idx===0 ? (elab||null) : paradas[ids[idx-1]];
+      if(prevP&&prevP.lat&&p.lat){
+        p.etaMin = Math.round(haversineKm(prevP,p)*1.35/VELOCIDAD_KMH*60);
+      }
+    }
+    toast('🚚 Suc. '+p.suc+' — Salió a las '+now,'🚚');
+  }
   else{p.status='entregado';p.tsFin=now;toast('✅ Suc. '+p.suc+' — Entregado a las '+now,'✅');}
   if(leafM[modalPid]) leafM[modalPid].setIcon(makeSucIco(p));
   gsSaveEstado(p);
@@ -898,7 +1473,7 @@ function checkResetDiario(){
 }
 function closeResetModal(){document.getElementById('reset-modal').classList.remove('open');localStorage.setItem(STORAGE_KEY_DATE,hoyStr());}
 function ejecutarReset(){
-  gsSaveHistorial();
+  Object.keys(vueltaElab).forEach(function(eid){ gsSaveHistorialVuelta(vueltaElab[eid],eid); });
   elabsConfirmadas['006']=false; elabsConfirmadas['225']=false;
   if(Object.keys(paradas).length) guardarHistorialDia();
   paradas={};trucks={};
@@ -991,75 +1566,197 @@ function exportarExcelSemanal(){
 // ── PDF ──
 function generarPDF(){
   const {jsPDF}=window.jspdf;
-  const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
-  const elab=ELABS[opElab],W=210,M=14;let y=18;
-  doc.setFillColor(17,8,0);doc.rect(0,0,W,28,'F');
-  doc.setFontSize(17);doc.setFont('helvetica','bold');doc.setTextColor(240,180,41);
-  doc.text('PANRUTA — REPORTE DE ENTREGAS',M,12);
-  doc.setFontSize(8);doc.setFont('helvetica','normal');doc.setTextColor(150,130,90);
-  doc.text(elab.nombre+'  ·  '+elab.dir,M,19);
-  doc.text('Vuelta '+vueltaActual+'  ·  '+new Date().toLocaleDateString('es-AR')+'  '+new Date().toLocaleTimeString('es-AR',{hour12:false}),W-M,19,{align:'right'});
-  y=36;
-  Object.entries(trucks).filter(([,t])=>t.elabId===opElab).forEach(([tid,t])=>{
-    const tps=t.paradaIds.map(id=>paradas[id]).filter(Boolean);if(!tps.length) return;
-    doc.setFillColor(22,13,3);doc.rect(M-2,y-5,W-2*M+4,10,'F');
-    doc.setFontSize(11);doc.setFont('helvetica','bold');doc.setTextColor(240,180,41);var pat=truckPatentes[tid]?' ['+truckPatentes[tid]+']':'';
-    doc.text(t.name.toUpperCase()+pat,M,y);
-    const done=tps.filter(p=>p.status==='entregado').length;
-    doc.setFontSize(8);doc.setFont('helvetica','normal');doc.setTextColor(135,115,75);
-    doc.text(done+'/'+tps.length+' entregas',W-M,y,{align:'right'});y+=7;
-    const cols=[M,M+12,M+65,M+105,M+133,M+158,M+183];
-    doc.setFontSize(6.5);doc.setFont('helvetica','bold');doc.setTextColor(105,85,50);
-    ['#','SUCURSAL','DIRECCIÓN','SALIDA','ENTREGA','ETA','DEMORA'].forEach((h,i)=>doc.text(h,cols[i],y));
-    y+=1;doc.setDrawColor(42,28,7);doc.setLineWidth(0.2);doc.line(M,y,W-M,y);y+=4;
-    tps.forEach((p,ri)=>{
-      if(ri%2===0){doc.setFillColor(15,10,2);}else{doc.setFillColor(30,20,6);}doc.rect(M-2,y-3,W-2*M+4,7,'F');
-      doc.setFontSize(7.5);doc.setFont('helvetica','normal');doc.setTextColor(230,210,170);
-      doc.text(String(p.orden),cols[0],y);doc.text('Suc. '+p.suc,cols[1],y);doc.text((p.dir||'').substring(0,28),cols[2],y);
-      doc.setTextColor(p.tsInicio?75:85,p.tsInicio?180:80,p.tsInicio?80:62);doc.text(p.tsInicio||'—',cols[3],y);
-      doc.setTextColor(p.tsFin?75:85,p.tsFin?180:80,p.tsFin?80:62);doc.text(p.tsFin||'—',cols[4],y);
-      doc.setTextColor(96,165,250);doc.text(p.etaMin!=null?p.etaMin+'min':'—',cols[5],y);
-      const eta=getEtaLabel(p);
-      if(eta&&eta.demora!=null){doc.setTextColor(eta.demora>5?248:74,eta.demora>5?113:222,eta.demora>5?113:128);doc.text(eta.demora>0?'+'+eta.demora+'min':'ok',cols[6],y);}
-      else{doc.setTextColor(120,100,65);doc.text('—',cols[6],y);}
-      y+=7;
-    });
-    const fi=tps.find(p=>p.tsInicio),li=[...tps].reverse().find(p=>p.tsFin);
-    doc.setFontSize(7);doc.setFont('helvetica','italic');doc.setTextColor(95,78,46);
-    doc.text('Primera salida: '+(fi&&fi.tsInicio?fi.tsInicio:'—')+'     Última entrega: '+(li&&li.tsFin?li.tsFin:'—'),M,y);
-    y+=10;if(y>260){doc.addPage();y=18;}
+  const doc=new jsPDF({orientation:'landscape',unit:'mm',format:'a4'});
+  const elab=ELABS[opElab];
+  const W=297, M=12; let y=14;
+
+  // ── FONDO NEGRO TOTAL ──
+  doc.setFillColor(10,5,0);
+  doc.rect(0,0,W,210,'F');
+
+  // ── HEADER ──
+  doc.setFillColor(17,8,0);
+  doc.rect(0,0,W,26,'F');
+  doc.setFontSize(18);doc.setFont('helvetica','bold');doc.setTextColor(240,180,41);
+  doc.text('PANRUTA — REPORTE DE ENTREGAS',M,11);
+  doc.setFontSize(9);doc.setFont('helvetica','normal');doc.setTextColor(180,155,100);
+  doc.text(elab.nombre+' · '+elab.dir, M, 19);
+  doc.text(new Date().toLocaleDateString('es-AR')+' '+new Date().toLocaleTimeString('es-AR',{hour12:false}), W-M, 19, {align:'right'});
+  doc.setDrawColor(240,180,41);doc.setLineWidth(0.5);doc.line(0,26,W,26);
+  y = 34;
+
+  // Columnas: ancho total útil = W - 2*M = 273mm
+  // #(8) | Suc(22) | Dirección(62) | Salida(22) | Entrega(22) | ETA(18) | Demora(20)
+  // Total: 8+22+62+22+22+18+20 = 174 → con padding entre cols queda bien
+  const colX = [M, M+10, M+34, M+100, M+126, M+152, M+172];
+  const colW = [10, 24, 64, 24, 24, 18, 22];
+
+  function drawTableHeader(yy){
+    // Fondo header
+    doc.setFillColor(40,24,5);
+    doc.rect(M-1, yy-5, W-2*M+2, 8, 'F');
+    // Borde superior e inferior del header
+    doc.setDrawColor(240,180,41);doc.setLineWidth(0.4);
+    doc.line(M-1,yy-5, W-M+1,yy-5);
+    doc.line(M-1,yy+3, W-M+1,yy+3);
+    // Texto encabezados
+    doc.setFontSize(8.5);doc.setFont('helvetica','bold');doc.setTextColor(255,220,80);
+    const hdrs=['#','SUCURSAL','DIRECCIÓN','SALIDA','ENTREGA','ETA','DEMORA'];
+    hdrs.forEach((h,i)=> doc.text(h, colX[i]+1, yy));
+    return yy+7;
+  }
+
+  function drawRow(p, ri, yy){
+    // Fondo alternado
+    if(ri%2===0){
+      doc.setFillColor(28,17,4);
+      doc.rect(M-1, yy-4, W-2*M+2, 7, 'F');
+    } else {
+      doc.setFillColor(12,7,1);
+      doc.rect(M-1, yy-4, W-2*M+2, 7, 'F');
+    }
+    // Borde fila
+    doc.setDrawColor(40,28,8);doc.setLineWidth(0.15);
+    doc.line(M-1,yy+3, W-M+1,yy+3);
+
+    doc.setFontSize(8.5);doc.setFont('helvetica','normal');
+
+    // Número
+    doc.setTextColor(200,170,100);
+    doc.text(String(p.orden), colX[0]+1, yy);
+
+    // Sucursal — en negrita y color destacado
+    doc.setFont('helvetica','bold');doc.setTextColor(255,255,255);
+    doc.text('Suc. '+p.suc, colX[1]+1, yy);
+
+    // Dirección
+    doc.setFont('helvetica','normal');doc.setTextColor(200,185,155);
+    var dirTxt = (p.dir||'').length>30 ? (p.dir||'').substring(0,29)+'…' : (p.dir||'');
+    doc.text(dirTxt, colX[2]+1, yy);
+
+    // Salida
+    doc.setFont('helvetica','bold');
+    doc.setTextColor(p.tsInicio ? 80:120, p.tsInicio?200:120, p.tsInicio?100:120);
+    doc.text(p.tsInicio||'—', colX[3]+1, yy);
+
+    // Entrega
+    doc.setTextColor(p.tsFin ? 80:120, p.tsFin?220:120, p.tsFin?100:120);
+    doc.text(p.tsFin||'—', colX[4]+1, yy);
+
+    // ETA
+    doc.setFont('helvetica','normal');doc.setTextColor(100,170,255);
+    doc.text(p.etaMin!=null ? p.etaMin+'min':'—', colX[5]+1, yy);
+
+    // Demora real (minutos entre salida y entrega)
+    var demoraMin = '—';
+    var demoraNum = null;
+    if(p.tsInicio && p.tsFin){
+      try{
+        var t1=p.tsInicio.split(':'), t2=p.tsFin.split(':');
+        demoraNum=(parseInt(t2[0])*60+parseInt(t2[1]))-(parseInt(t1[0])*60+parseInt(t1[1]));
+        demoraMin = demoraNum+'min';
+      }catch(e){}
+    }
+    var esLenta = demoraNum!=null && p.etaMin!=null && demoraNum > p.etaMin+2;
+    doc.setFont('helvetica','bold');
+    doc.setTextColor(esLenta?248:80, esLenta?80:220, esLenta?80:100);
+    doc.text(demoraMin, colX[6]+1, yy);
+
+    return yy+7;
+  }
+
+  // Borde exterior de la tabla
+  function drawTableBorder(yStart, yEnd){
+    doc.setDrawColor(240,180,41);doc.setLineWidth(0.4);
+    doc.rect(M-1, yStart-5, W-2*M+2, yEnd-yStart+5, 'S');
+  }
+
+  // ── SECCIONES: vueltas cerradas + vuelta activa ──
+  var secciones = [];
+  (historialVueltas[opElab]||[]).forEach(function(h){
+    secciones.push({vuelta:h.vuelta, trucksObj:h.trucks,
+      paradasObj:h.paradas.reduce(function(a,p){a[p.id]=p;return a;},{})});
   });
-  doc.setFillColor(17,8,0);doc.rect(M-2,y-4,W-2*M+4,34,'F');
-  doc.setFontSize(11);doc.setFont('helvetica','bold');doc.setTextColor(240,180,41);doc.text('RESUMEN TOTAL',M,y);y+=8;
+  var psActivas = Object.values(paradas).filter(function(p){return p.elabId===opElab;});
+  if(psActivas.length){
+    secciones.push({vuelta:vueltaElab[opElab]||1,
+      trucksObj:Object.entries(trucks).filter(function(kv){return kv[1].elabId===opElab;})
+        .reduce(function(a,kv){a[kv[0]]=kv[1];return a;},{}),
+      paradasObj:paradas});
+  }
+
+  secciones.forEach(function(sec){
+    if(secciones.length>1){
+      if(y>160){doc.addPage();doc.setFillColor(10,5,0);doc.rect(0,0,W,210,'F');y=14;}
+      doc.setFillColor(5,3,0);doc.rect(M-1,y-5,W-2*M+2,8,'F');
+      doc.setDrawColor(200,140,30);doc.setLineWidth(0.3);doc.rect(M-1,y-5,W-2*M+2,8,'S');
+      doc.setFontSize(9);doc.setFont('helvetica','bold');doc.setTextColor(200,150,50);
+      doc.text('VUELTA '+sec.vuelta,M+2,y);y+=7;
+    }
+
+    Object.entries(sec.trucksObj).forEach(function(entry){
+      var tid=entry[0],t=entry[1];
+      var tps=t.paradaIds.map(function(id){return sec.paradasObj[id];}).filter(Boolean);
+      if(!tps.length) return;
+
+      if(y>170){doc.addPage();doc.setFillColor(10,5,0);doc.rect(0,0,W,210,'F');y=14;}
+
+      doc.setFillColor(30,18,3);doc.rect(M-1,y-6,W-2*M+2,9,'F');
+      doc.setDrawColor(240,180,41);doc.setLineWidth(0.5);doc.line(M-1,y-6,W-M+1,y-6);
+      doc.setFontSize(11);doc.setFont('helvetica','bold');
+      var rgb=hexToRgb(t.color||'#f97316');doc.setTextColor(rgb[0],rgb[1],rgb[2]);
+      var nCam=t.name.toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+      doc.text(nCam,M+1,y);
+      var done=tps.filter(function(p){return p.status==='entregado';}).length;
+      doc.setFontSize(9);doc.setTextColor(180,155,100);
+      doc.text(done+'/'+tps.length+' entregas',W-M,y,{align:'right'});
+      y+=6;
+
+      var tSY=y; y=drawTableHeader(y);
+      tps.forEach(function(p,ri){y=drawRow(p,ri,y);});
+      drawTableBorder(tSY,y);
+
+      var fi=tps.find(function(p){return p.tsInicio;});
+      var li=[...tps].reverse().find(function(p){return p.tsFin;});
+      doc.setFontSize(7.5);doc.setFont('helvetica','italic');doc.setTextColor(140,115,70);
+      doc.text('Primera salida: '+(fi&&fi.tsInicio?fi.tsInicio:'—')+'     Última entrega: '+(li&&li.tsFin?li.tsFin:'—'),M,y+5);
+      y+=14;
+    });
+  });
+
+  // ── RESUMEN ──
+  if(y>170){
+    doc.addPage();
+    doc.setFillColor(10,5,0);doc.rect(0,0,W,210,'F');
+    y=14;
+  }
+  doc.setFillColor(17,8,0);
+  doc.rect(M-1,y-5,W-2*M+2,36,'F');
+  doc.setDrawColor(240,180,41);doc.setLineWidth(0.4);
+  doc.rect(M-1,y-5,W-2*M+2,36,'S');
+  doc.setFontSize(11);doc.setFont('helvetica','bold');doc.setTextColor(240,180,41);
+  doc.text('RESUMEN TOTAL',M+1,y);y+=8;
   const allPs=Object.values(paradas).filter(p=>p.elabId===opElab);
-  const tot=allPs.length,doneTot=allPs.filter(p=>p.status==='entregado').length;
-  doc.setFontSize(8.5);doc.setFont('helvetica','normal');doc.setTextColor(180,160,120);
-  ['Elaboradora: '+elab.nombre,'Total paradas: '+tot,'Completadas: '+doneTot+' ('+(tot?Math.round(doneTot/tot*100):0)+'%)','Camiones: '+elab.numTrucks]
-    .forEach(l=>{doc.text(l,M,y);y+=5;});
-  doc.setFontSize(6.5);doc.setTextColor(60,45,25);doc.text('PanRuta — Sistema de Entregas en Tiempo Real',W/2,285,{align:'center'});
-  doc.save('PanRuta_'+opElab+'_'+new Date().toLocaleDateString('es-AR').replace(/\//g,'-')+'.pdf');
-  guardarHistorialDia();
+  const comp=allPs.filter(p=>p.status==='entregado').length;
+  doc.setFontSize(9);doc.setFont('helvetica','normal');doc.setTextColor(200,180,130);
+  doc.text('Elaboradora: '+elab.nombre, M+2, y);y+=6;
+  doc.text('Total paradas: '+allPs.length+'     Completadas: '+comp+' ('+Math.round(comp/Math.max(allPs.length,1)*100)+'%)', M+2, y);y+=6;
+  doc.text('Camiones: '+Object.values(trucks).filter(t=>t.elabId===opElab).length, M+2, y);
+
+  // Footer
+  doc.setFontSize(7);doc.setTextColor(80,65,40);
+  doc.text('PanRuta — Sistema de Entregas en Tiempo Real',W/2,200,{align:'center'});
+
+  doc.save('PanRuta_'+opElab+'_'+hoyStr()+'.pdf');
 }
 
-// ── GEOCODIFICACIÓN ──
-async function geocode(addr){
-  const r=await fetch('https://nominatim.openstreetmap.org/search?q='+encodeURIComponent(addr)+'&format=json&limit=1&countrycodes=ar',{headers:{'Accept-Language':'es'}});
-  const d=await r.json();
-  return d&&d.length?{lat:parseFloat(d[0].lat),lng:parseFloat(d[0].lon)}:null;
+function hexToRgb(hex){
+  var r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
+  return [r,g,b];
 }
-async function geocodeAll(){
-  const tasks=[];
-  Object.values(ELABS).forEach(e=>{
-    if(!e.lat) tasks.push({obj:e,label:'Elaboradora '+e.id});
-    e.sucursales.forEach(s=>{if(!s.lat)tasks.push({obj:s,label:'Suc. '+s.suc});});
-  });
-  for(let i=0;i<tasks.length;i++){
-    const t=tasks[i];
-    document.getElementById('geo-prog').textContent=t.label+' ('+(i+1)+'/'+tasks.length+')';
-    document.getElementById('geo-summary').textContent='2 elaboradoras · 11 sucursales · 4 camiones';
-    try{const c=await geocode(t.obj.address);if(c){t.obj.lat=c.lat;t.obj.lng=c.lng;}}catch(e){}
-    if(i<tasks.length-1) await new Promise(r=>setTimeout(r,1100));
-  }
+
+function postGeocodeRecalc(){
+  if(Object.keys(paradas).length>0){ recalcEtasParadas(); renderSidebar(); renderChofer(); drawOpLines(); }
 }
 
 // ── TOAST ──
@@ -1084,122 +1781,11 @@ let lastDate=hoyStr();
 
 // ── INIT ──
 
-// ── SISTEMA DE VUELTAS ──
-function irAVuelta(n) {
-  // Solo permite ir a vuelta si hay entregas completas o la vuelta está vacía
-  if(n === vueltaActual) return;
-  // Verificar si hay paradas en curso
-  var enCurso = Object.values(paradas).some(function(p){ return p.status !== 'pendiente'; });
-  if(enCurso && n < vueltaActual) {
-    toast('Cerrá la vuelta actual antes de volver atrás','⚠️'); return;
-  }
-  vueltaActual = n;
-  actualizarBotonesVuelta();
-  // Cargar config y estado de esta vuelta desde Sheets
-  gsLoadConfigVuelta(n);
-}
-
-function actualizarBotonesVuelta() {
-  [1,2,3].forEach(function(n){
-    var btn = document.getElementById('vbtn-'+n);
-    if(btn) btn.className = 'vuelta-btn' + (n===vueltaActual?' active':'');
-  });
-  // Mostrar botón cerrar vuelta si hay paradas confirmadas
-  var hayParadas = Object.keys(paradas).length > 0;
-  var btnCerrar = document.getElementById('btn-cerrar-vuelta');
-  if(btnCerrar) btnCerrar.style.display = hayParadas ? '' : 'none';
-}
-
-function pedirCerrarVuelta() {
-  var t = document.getElementById('vuelta-modal-title');
-  var s = document.getElementById('vuelta-modal-sub');
-  if(t) t.textContent = 'Cerrar Vuelta ' + vueltaActual;
-  if(s) {
-    var entregadas = Object.values(paradas).filter(function(p){ return p.status==='entregado'; }).length;
-    var total = Object.keys(paradas).length;
-    s.textContent = entregadas + ' de ' + total + ' entregas completas. Se guardará el registro y las sucursales volverán a pendiente para la siguiente vuelta.';
-  }
-  document.getElementById('vuelta-modal').style.display = 'flex';
-}
-
-function closeVueltaModal() {
-  document.getElementById('vuelta-modal').style.display = 'none';
-}
-
-function ejecutarCerrarVuelta() {
-  closeVueltaModal();
-  // Guardar historial de esta vuelta
-  gsSaveHistorialVuelta(vueltaActual);
-  // Resetear estados a pendiente (mantener config)
-  Object.values(paradas).forEach(function(p){
-    p.status = 'pendiente'; p.tsInicio = null; p.tsFin = null;
-  });
-  // Pasar a siguiente vuelta
-  if(vueltaActual < 3) {
-    vueltaActual++;
-    actualizarBotonesVuelta();
-  }
-  // Limpiar estado en Sheets para nueva vuelta
-  renderSidebar(); renderChofer(); drawOpLines();
-  toast('Vuelta ' + (vueltaActual-1) + ' cerrada ✓ — Vuelta ' + vueltaActual + ' iniciada', '🔄');
-}
-
-function gsSaveHistorialVuelta(nVuelta) {
-  var entregas = Object.values(paradas).map(function(p){
-    return {fecha:hoyStr(), vuelta:nVuelta,
-            elabId:p.elabId, truckId:p.truckId, truckName:p.truckName,
-            patente:truckPatentes[p.truckId]||'',
-            sucId:p.id, suc:p.suc, dir:p.dir, orden:p.orden,
-            tsInicio:p.tsInicio||'', tsFin:p.tsFin||'',
-            status:p.status, demora:0, etaMin:p.etaMin};
-  });
-  if(entregas.length > 0) gsPost({action:'saveHistorial', entregas:entregas});
-}
-
-function gsLoadConfigVuelta(nVuelta) {
-  // Para vueltas 2 y 3, cargar config específica si existe, sino usar la de vuelta 1
-  var fecha = hoyStr();
-  fetch(GS_URL + '?action=getConfig&fecha=' + fecha + '&vuelta=' + nVuelta)
-    .then(function(r){ return r.json(); })
-    .then(function(data){
-      if(!data.ok || !data.paradas || data.paradas.length === 0) {
-        // Si no hay config específica para esta vuelta, usar la actual (vuelta 1)
-        // Solo resetear estados
-        Object.values(paradas).forEach(function(p){
-          p.status='pendiente'; p.tsInicio=null; p.tsFin=null;
-        });
-        gsLoadEstadoVuelta(nVuelta);
-        renderSidebar(); renderChofer(); drawOpLines();
-        return;
-      }
-      // Cargar config específica de esta vuelta
-      gsAplicarConfig(data.paradas);
-      gsLoadEstadoVuelta(nVuelta);
-    })
-    .catch(function(e){ console.warn('gsLoadConfigVuelta error:', e); });
-}
-
-function gsLoadEstadoVuelta(nVuelta) {
-  var fecha = hoyStr();
-  fetch(GS_URL + '?action=getEstado&fecha=' + fecha + '&vuelta=' + nVuelta)
-    .then(function(r){ return r.json(); })
-    .then(function(data){
-      if(!data.ok || !data.estados) return;
-      Object.keys(data.estados).forEach(function(sid){
-        var sidStr = String(sid);
-        if(paradas[sidStr]){
-          var e = data.estados[sidStr];
-          if(e.status) paradas[sidStr].status = e.status;
-          if(e.tsInicio) paradas[sidStr].tsInicio = e.tsInicio;
-          if(e.tsFin) paradas[sidStr].tsFin = e.tsFin;
-        }
-      });
-      renderSidebar(); renderChofer(); drawOpLines();
-    })
-    .catch(function(e){ console.warn('gsLoadEstadoVuelta error:', e); });
-}
-
+// ── GOOGLE SHEETS ──
 var GS_URL = 'https://script.google.com/macros/s/AKfycbyEwaXuHq7yrLQapSQ_UNilg-Xu0vFvSkbqOT5MeQYrlTtAPaVu-ycvhWUqXeAyXw4Q/exec';
+let truckPatentes = {};
+let elabsCargadas = 0;
+let vueltaElab = {'006':1,'225':1};
 
 function gsPost(data) {
   var url = GS_URL + '?data=' + encodeURIComponent(JSON.stringify(data));
@@ -1211,9 +1797,10 @@ function gsSaveConfig(eid) {
   var ps = Object.values(paradas).filter(function(p){ return p.elabId === eid; });
   if(ps.length === 0) return;
   gsPost({
-    action:'saveConfig', fecha:fecha, vuelta:vueltaActual,
+    action:'saveConfig', fecha:fecha, vuelta:vueltaElab[eid]||1, confirmado:true,
     paradas: ps.map(function(p){
-      return {elabId:String(p.elabId),truckId:p.truckId,truckName:p.truckName,patente:truckPatentes[p.truckId]||'',
+      return {elabId:String(p.elabId),truckId:p.truckId,truckName:p.truckName,
+              patente:truckPatentes[p.truckId]||'',
               id:p.id,suc:p.suc,dir:p.dir,orden:p.orden,etaMin:p.etaMin};
     })
   });
@@ -1221,7 +1808,7 @@ function gsSaveConfig(eid) {
 
 function gsSaveEstado(p) {
   gsPost({
-    action:'saveEstado', fecha:hoyStr(), vuelta:vueltaActual,
+    action:'saveEstado', fecha:hoyStr(), vuelta:vueltaElab[p.elabId]||1,
     sucId:p.id, status:p.status,
     tsInicio:p.tsInicio||'', tsFin:p.tsFin||'', demora:0
   });
@@ -1229,152 +1816,239 @@ function gsSaveEstado(p) {
 
 function gsLoadEstado() {
   var fecha = hoyStr();
-  fetch(GS_URL + '?action=getEstado&fecha=' + fecha + '&vuelta=' + vueltaActual)
-    .then(function(r){ return r.json(); })
-    .then(function(data){
-      if(!data.ok || !data.estados) return;
-      var changed = false;
-      Object.keys(data.estados).forEach(function(sid){
-        // SucId puede venir como número desde Sheets
-        var sidStr = String(sid);
-        if(paradas[sidStr]){ sid = sidStr; }
-        if(paradas[sid]){
-          var e = data.estados[sid];
-          if(e.status) paradas[sid].status = e.status;
-          if(e.tsInicio) {
-            // Sheets puede devolver timestamp completo, extraer solo HH:MM:SS
-            var ts = String(e.tsInicio);
-            var m = ts.match(/(\d{1,2}:\d{2}:\d{2})/);
-            paradas[sid].tsInicio = m ? m[1] : ts.substring(0,8);
+  Object.keys(vueltaElab).forEach(function(eid) {
+    fetch(GS_URL + '?action=getEstado&fecha=' + fecha + '&vuelta=' + vueltaElab[eid] + '&elabId=' + eid)
+      .then(function(r){ return r.json(); })
+      .then(function(data){
+        if(!data.ok || !data.estados) return;
+        Object.keys(data.estados).forEach(function(sid){
+          var sidStr = String(sid);
+          if(paradas[sidStr] && paradas[sidStr].elabId===eid){
+            var e = data.estados[sidStr];
+            var vs=['pendiente','en-camino','entregado'];
+            if(e.status && vs.indexOf(String(e.status).trim())>=0) paradas[sidStr].status=String(e.status).trim();
+            if(e.tsInicio) paradas[sidStr].tsInicio = sanitizeTs(e.tsInicio);
+            if(e.tsFin) paradas[sidStr].tsFin = sanitizeTs(e.tsFin);
           }
-          if(e.tsFin) {
-            var tf = String(e.tsFin);
-            var mf = tf.match(/(\d{1,2}:\d{2}:\d{2})/);
-            paradas[sid].tsFin = mf ? mf[1] : tf.substring(0,8);
-          }
-          changed = true;
-        }
-      });
-      if(changed){ renderSidebar(); renderChofer(); drawOpLines(); }
-    })
-    .catch(function(e){ console.warn('gsLoadEstado error:', e); });
+        });
+        // Actualizar lat/lng de paradas desde sucursales (pueden haberse geocodificado después)
+        Object.values(paradas).forEach(function(p){
+          if(p.lat) return; // ya tiene coords
+          var elab = ELABS[p.elabId];
+          if(!elab) return;
+          var suc = elab.sucursales.find(function(s){ return String(s.id)===String(p.id)||String(s.suc)===String(p.suc); });
+          if(suc && suc.lat){ p.lat=suc.lat; p.lng=suc.lng; }
+        });
+        // Recalcular ETAs con coords actualizadas y redibujar mapa
+        recalcEtasParadas();
+        Object.keys(ELABS).forEach(function(eid){
+          if(elabsConfirmadas[eid]) try{ buildOpMapWithRoutes(eid); }catch(err){}
+        });
+        renderSidebar(); renderChofer();
+      }).catch(function(e){ console.warn('gsLoadEstado error:', e); });
+  });
 }
 
 function gsLoadConfig() {
+  if(gsLoadConfig._corriendo) return;
+  gsLoadConfig._corriendo = true;
   var fecha = hoyStr();
-  fetch(GS_URL + '?action=getConfig&fecha=' + fecha + '&vuelta=' + vueltaActual)
-    .then(function(r){ return r.json(); })
-    .then(function(data){
-      var n = data.paradas ? data.paradas.length : 0;
-      if(n === 0) return;
-      toast('Cargando ruta del día (' + n + ' paradas)...','📋');
+  var eids = Object.keys(vueltaElab);
+  var resultados = {}; // Guardar data de cada elab antes de procesar
 
-      paradas = {}; trucks = {};
-      Object.values(ELABS).forEach(function(e){
-        configUnassigned[e.id] = [];
-        for(var i=0;i<e.numTrucks;i++) configTrucks[e.id+'-T'+(i+1)] = [];
-      });
+  // Primero fetch todo, luego procesar juntos
+  var fetches = eids.map(function(eid){
+    return fetch(GS_URL + '?action=getConfig&fecha=' + fecha + '&vuelta=' + vueltaElab[eid] + '&elabId=' + eid)
+      .then(function(r){ return r.json(); })
+      .then(function(data){ resultados[eid] = data; })
+      .catch(function(){ resultados[eid] = {ok:false}; });
+  });
 
-      var byElab = {};
+  Promise.all(fetches).then(function(){
+    // Procesar todas las elabs juntas, sin interferencias
+    var algunaConfirmada = false;
+
+    eids.forEach(function(eid){
+      var data = resultados[eid];
+      if(!data || !data.ok || !data.paradas || data.paradas.length === 0) return;
+      var e = ELABS[eid]; if(!e) return;
+
+      // Limpiar estado previo de este eid
+      Object.keys(paradas).forEach(function(pid){ if(paradas[pid].elabId===eid) delete paradas[pid]; });
+      for(var i=0;i<e.numTrucks;i++){
+        var tid=e.id+'-T'+(i+1);
+        trucks[tid]={name:e.truckNames[i],color:e.truckColors[i],elabId:e.id,paradaIds:[]};
+      }
+      configUnassigned[eid] = [];
+      for(var i=0;i<e.numTrucks;i++) configTrucks[e.id+'-T'+(i+1)] = [];
+
+      var asignados = [];
+      // Deduplicar por id
+      var _seen = {};
+      data.paradas = data.paradas.filter(function(p){ if(_seen[p.id]) return false; _seen[p.id]=true; return true; });
+      data.paradas.sort(function(a,b){ return Number(a.orden)-Number(b.orden); });
       data.paradas.forEach(function(p){
-        // Normalizar elabId: '6' -> '006', '225' -> '225'
-        if(p.elabId && String(p.elabId).length < 3) p.elabId = String(p.elabId).padStart(3,'0');
-        else p.elabId = String(p.elabId);
-        if(!byElab[p.elabId]) byElab[p.elabId] = [];
-        byElab[p.elabId].push(p);
-      });
-
-      Object.keys(byElab).forEach(function(eid){
-        var e = ELABS[eid]; if(!e) return;
-        for(var i=0;i<e.numTrucks;i++){
-          var tid = e.id+'-T'+(i+1);
-          trucks[tid] = {name:e.truckNames[i],color:e.truckColors[i],elabId:e.id,paradaIds:[]};
-        }
-        byElab[eid].sort(function(a,b){ return Number(a.orden)-Number(b.orden); });
-        byElab[eid].forEach(function(p){
-          var sucBase = e.sucursales.find(function(s){ return String(s.id)===String(p.id); })||{};
-          var tc = trucks[String(p.truckId)]?trucks[String(p.truckId)].color:'#f97316';
-          paradas[p.id] = Object.assign({},sucBase,{
-            elabId:p.elabId,truckId:p.truckId,truckName:p.truckName,truckColor:tc,
-            orden:Number(p.orden),etaMin:Number(p.etaMin),
-            status:'pendiente',tsInicio:null,tsFin:null
-          });
-          if(trucks[p.truckId]) trucks[p.truckId].paradaIds.push(p.id);
-          if(p.patente) truckPatentes[p.truckId] = p.patente;
-          if(!configTrucks[p.truckId]) configTrucks[p.truckId]=[];
-          configTrucks[p.truckId].push(p.id);
+        var elabId = String(p.elabId).length<3 ? String(p.elabId).padStart(3,'0') : String(p.elabId);
+        // Si id/suc vienen vacíos de Sheets, intentar recuperar por orden en configTrucks
+        var pId = p.id || p.suc || '';
+        var pSuc = p.suc || p.id || '';
+        var sucBase = e.sucursales.find(function(s){ 
+          return String(s.id)===String(pId) || String(s.suc)===String(pSuc);
+        })||{};
+        // Si no encontró, asignar el id desde sucBase para poder identificar
+        if(!pId && sucBase.id) pId = sucBase.id;
+        // Normalizar truckId: "6-T1" → "006-T1"
+        var ntid = p.truckId||'';
+        if(ntid && !trucks[ntid]){ var tp=ntid.split('-T'); if(tp.length===2) ntid=tp[0].padStart(3,'0')+'-T'+tp[1]; }
+        var tc = trucks[ntid]?trucks[ntid].color:'#f97316';
+        var finalId = String(pId || sucBase.id || p.id || '');
+        if(!finalId) return; // skip si no hay id
+        paradas[finalId] = Object.assign({
+          suc:String(pSuc||sucBase.suc||finalId), dir:p.dir||sucBase.dir||'', lat:null, lng:null
+        }, sucBase, {
+          elabId:elabId, truckId:ntid, truckName:p.truckName,
+          truckColor:tc, patente:p.patente||'',
+          orden:Number(p.orden), etaMin:Number(p.etaMin),
+          status:'pendiente', tsInicio:null, tsFin:null
         });
-        elabsConfirmadas[eid] = true;
-        try{ buildOpMapWithRoutes(eid); }catch(err){}
+        if(trucks[ntid]) trucks[ntid].paradaIds.push(finalId);
+        if(!configTrucks[ntid]) configTrucks[ntid]=[];
+        configTrucks[ntid].push(finalId);
+        if(p.patente) truckPatentes[ntid]=p.patente;
+        asignados.push(finalId);
       });
 
-      document.getElementById('btn-op').disabled = false;
-      document.getElementById('btn-chofer').disabled = false;
-      checkConfirmBtn();
-      renderConfig();
+      configUnassigned[eid] = e.sucursales.map(function(s){ return String(s.id); })
+        .filter(function(sid){ return asignados.indexOf(sid)===-1; });
+
+      var eraConfirmado = data.paradas.some(function(p){ return p.truckId && p.truckId !== ''; });
+      elabsConfirmadas[eid] = eraConfirmado;
+      if(eraConfirmado){
+        algunaConfirmada = true;
+        try{ buildOpMapWithRoutes(eid); }catch(err){}
+      }
+      actualizarBtnCerrarVuelta(eid);
+    });
+
+    // Una sola renderización al final
+    // Siempre habilitar los botones al terminar de cargar
+    document.getElementById('btn-op').disabled = false;
+    document.getElementById('btn-chofer').disabled = false;
+    if(algunaConfirmada){
       gsLoadEstado();
-      toast('Ruta del día lista','✅');
-    })
-    .catch(function(e){ console.warn('gsLoadConfig error:', e); });
+    }
+    checkConfirmBtn();
+    // Forzar re-render del tab activo para mostrar sucursales sin necesitar click
+    switchConfigElab(configElab);
+    gsLoadConfig._corriendo = false;
+    if(typeof gsLoadConfig._onDone === 'function'){ gsLoadConfig._onDone(); gsLoadConfig._onDone=null; }
+
+    var confirmadas = eids.filter(function(eid){ return elabsConfirmadas[eid]; });
+    if(confirmadas.length){
+      toast(confirmadas.join('+') + ' restauradas','📋');
+      // Redibujar mapa con pequeño delay para que gsLoadEstado aplique el estado
+      setTimeout(function(){
+        confirmadas.forEach(function(eid){
+          try{ buildOpMapWithRoutes(eid); }catch(err){}
+        });
+      }, 1200);
+    }
+  });
 }
 
-function gsSaveHistorial() {
-  var entregas = Object.values(paradas).filter(function(p){ return p.status==='entregado'; });
-  if(entregas.length===0) return;
-  gsPost({action:'saveHistorial',entregas:entregas.map(function(p){
-    return {fecha:hoyStr(),elabId:p.elabId,truckId:p.truckId,truckName:p.truckName,
-            sucId:p.id,suc:p.suc,dir:p.dir,orden:p.orden,
-            tsInicio:p.tsInicio||'',tsFin:p.tsFin||'',demora:0,etaMin:p.etaMin};
-  })});
-}
 
 function applyTheme(t){
-  var b=document.getElementById('theme-btn');
-  if(t==='light'){document.body.classList.add('light');if(b)b.innerHTML='&#9728;&#65039;';}
-  else{document.body.classList.remove('light');if(b)b.innerHTML='&#127769;';}
+  document.body.classList.toggle('light', t==='light');
+  var btn=document.getElementById('theme-btn');
+  if(btn) btn.textContent = t==='light' ? '🌙' : '☀️';
   try{localStorage.setItem('panruta_theme',t);}catch(e){}
 }
-function toggleTheme(){applyTheme(document.body.classList.contains('light')?'dark':'light');}
 function initTheme(){
-  var s=null;try{s=localStorage.getItem('panruta_theme');}catch(e){}
+  var s=null; try{s=localStorage.getItem('panruta_theme');}catch(e){}
   if(s){applyTheme(s);return;}
   applyTheme(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');
 }
+function toggleTheme(){
+  applyTheme(document.body.classList.contains('light')?'dark':'light');
+}
 
-var isMobile=window.innerWidth<=640;
-window.addEventListener('resize',function(){isMobile=window.innerWidth<=640;});
-var tapSelectedSid=null,tapFromTid=null;
-function setTapSelected(sid,fromTid){
-  tapSelectedSid=sid;tapFromTid=fromTid||null;
-  document.querySelectorAll('.suc-chip,.truck-chip').forEach(function(el){el.classList.remove('tap-selected');});
-  if(sid!==null){var sel=document.querySelector('[data-sid="'+sid+'"]');if(sel)sel.classList.add('tap-selected');}
+var isMobile = window.innerWidth <= 640;
+window.addEventListener('resize', function(){ isMobile = window.innerWidth <= 640; });
+
+async function geocode(addr){
+  const r = await fetch('https://nominatim.openstreetmap.org/search?q='+encodeURIComponent(addr+', Neuquen, Argentina')+'&format=json&limit=1');
+  const d = await r.json();
+  if(d&&d[0]) return {lat:parseFloat(d[0].lat), lng:parseFloat(d[0].lon)};
+  return null;
 }
-function handleTapOnSuc(sid,fromTid){
-  if(!isMobile)return;
-  if(tapSelectedSid===sid){setTapSelected(null);return;}
-  setTapSelected(sid,fromTid||null);
+
+async function geocodeAll(){
+  const tasks=[];
+  Object.values(ELABS).forEach(e=>{
+    if(!e.lat) tasks.push({obj:e, label:'Elaboradora '+e.id});
+    e.sucursales.forEach(s=>{ if(!s.lat) tasks.push({obj:s, label:'Suc. '+s.suc}); });
+  });
+  for(let i=0;i<tasks.length;i++){
+    const t=tasks[i];
+    document.getElementById('geo-prog').textContent=t.label+' ('+(i+1)+'/'+tasks.length+')';
+    try{const c=await geocode(t.obj.address);if(c){t.obj.lat=c.lat;t.obj.lng=c.lng;}}catch(e){}
+    if(i<tasks.length-1) await new Promise(r=>setTimeout(r,1100));
+  }
+  postGeocodeRecalc();
 }
-function handleTapOnTruck(tid){
-  if(!isMobile||tapSelectedSid===null)return;
-  var sid=tapSelectedSid,fromTid=tapFromTid;
-  if(fromTid){configTrucks[fromTid]=configTrucks[fromTid].filter(function(x){return x!==sid;});}
-  else{configUnassigned[configElab]=configUnassigned[configElab].filter(function(x){return x!==sid;});}
-  if(configTrucks[tid].indexOf(sid)===-1)configTrucks[tid].push(sid);
-  setTapSelected(null);renderConfig();checkConfirmBtn();
+
+function geoStep(n, pct, txt){
+  [1,2,3,4].forEach(function(i){
+    var el = document.getElementById('gstep-'+i);
+    if(!el) return;
+    el.classList.remove('active','done');
+    if(i < n) el.classList.add('done');
+    else if(i === n) el.classList.add('active');
+  });
+  var bar = document.getElementById('geo-bar');
+  if(bar) bar.style.width = pct + '%';
+  var prog = document.getElementById('geo-prog');
+  if(prog && txt) prog.textContent = txt;
 }
+
 async function init(){
   initTheme();
-  initMaps();
+  document.querySelectorAll('.page').forEach(function(p){ p.style.display='none'; });
   showPage('geo');
+  geoStep(1, 10, 'Iniciando mapas…');
+  initMaps();
+  await new Promise(function(r){ setTimeout(r, 400); });
+
+  geoStep(2, 30, 'Ubicando sucursales…');
   await geocodeAll();
   buildBaseMarkers();
+  geoStep(2, 55, 'Sucursales listas');
+  await new Promise(function(r){ setTimeout(r, 300); });
+
+  geoStep(3, 65, 'Restaurando rutas del día…');
   document.getElementById('btn-config').disabled=false;
   document.getElementById('btn-op').disabled=false;
   initConfig();
+  checkResetDiario();
+  gsCargarConfigAdmin();
+  await new Promise(function(r){ setTimeout(r, 300); });
+  await new Promise(function(resolve){
+    gsLoadConfig._onDone = resolve;
+    gsLoadConfig();
+    setTimeout(resolve, 6000); // fallback 6s
+  });
+
+  // Asegurar botones habilitados llegando a este punto
+  document.getElementById('btn-op').disabled = false;
+  document.getElementById('btn-chofer').disabled = false;
+  geoStep(4, 88, 'Sincronizando estado…');
+  await new Promise(function(r){ setTimeout(r, 500); });
+
+  geoStep(4, 100, 'Listo!');
+  await new Promise(function(r){ setTimeout(r, 600); });
+
   showPage('config');
   document.getElementById('btn-config').classList.add('active');
-  checkResetDiario();
-  setTimeout(gsLoadConfig, 1500);
   setInterval(function(){if(Object.keys(paradas).length>0)gsLoadEstado();},30000);
 }
 init();
