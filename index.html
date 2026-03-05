@@ -489,7 +489,7 @@ body.light .admin-pin-input{background:rgba(255,255,255,.6);border-color:rgba(0,
     <div class="camiones-wrap" id="camiones-wrap"></div>
     <div class="list-hdr">📦 Paradas</div>
     <div class="cards-wrap" id="cards-wrap"></div>
-    <button class="pdf-btn" id="pdf-btn" onclick="generarPDF()">📄 Reporte PDF del día</button>
+    <button class="pdf-btn" id="pdf-btn" onclick="abrirReportModal()">📄 Reporte PDF del día</button>
     <button class="xlsx-btn" onclick="exportarExcelSemanal()">📊 Historial Semanal Excel</button>
   </div>
   <div class="map-wrap">
@@ -538,6 +538,29 @@ body.light .admin-pin-input{background:rgba(255,255,255,.6);border-color:rgba(0,
     </div>
   </div>
 </div>
+<div id="report-modal" style="position:fixed;inset:0;z-index:9993;background:rgba(9,7,5,.9);backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;">
+  <div style="background:#120d05;border:1px solid rgba(240,180,41,.35);border-radius:14px;padding:24px 22px;max-width:400px;width:92%;display:flex;flex-direction:column;gap:14px;">
+    <div style="font-family:'Bebas Neue',cursive;font-size:20px;letter-spacing:2px;color:var(--gold);">📄 REPORTE DE ENTREGAS</div>
+    <div style="font-size:11px;color:rgba(255,255,255,.4);line-height:1.5;">Seleccioná la fecha y elaboradora para generar el reporte PDF con datos desde Google Sheets.</div>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <label style="font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.3);">Fecha</label>
+      <input type="date" id="report-fecha" style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);border-radius:7px;color:var(--cream);font-size:13px;padding:7px 10px;font-family:inherit;width:100%;">
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <label style="font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.3);">Elaboradora</label>
+      <div style="display:flex;gap:8px;">
+        <button id="rep-elab-006" onclick="selReportElab('006')" style="flex:1;padding:8px;border-radius:7px;border:1px solid var(--r1);background:var(--r1s);color:var(--r1);font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s;">● Suc. 006</button>
+        <button id="rep-elab-225" onclick="selReportElab('225')" style="flex:1;padding:8px;border-radius:7px;border:1px solid rgba(255,255,255,.1);background:transparent;color:rgba(255,255,255,.3);font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s;">● Suc. 225</button>
+      </div>
+    </div>
+    <div id="report-status" style="font-size:10px;color:rgba(240,180,41,.6);min-height:16px;font-family:'JetBrains Mono',monospace;"></div>
+    <div style="display:flex;gap:8px;">
+      <button onclick="generarPDFDesdeSheets()" style="flex:1;padding:10px;border-radius:8px;border:1px solid rgba(240,180,41,.4);background:rgba(240,180,41,.15);color:var(--gold);font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;">📥 Descargar PDF</button>
+      <button onclick="document.getElementById('report-modal').style.display='none'" style="flex:1;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:rgba(255,255,255,.35);font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;">Cancelar</button>
+    </div>
+  </div>
+</div>
+
 <div id="reset-modal">
   <div class="reset-box">
     <div class="reset-icon">🌅</div>
@@ -1118,8 +1141,15 @@ function renderConfig(){
 }
 
 function removeFromTruck(tid,sid){
-  configTrucks[tid]=configTrucks[tid].filter(x=>x!==sid);
-  configUnassigned[configElab].push(sid);
+  var sidStr = String(sid);
+  var eid = tid.split('-T')[0]; // extraer elaboradora del truckId (ej: '006-T1' → '006')
+  // Quitar del camión (comparar como string)
+  configTrucks[tid] = (configTrucks[tid]||[]).filter(function(x){ return String(x) !== sidStr; });
+  // Agregar a sin asignar solo si no está ya
+  if(!configUnassigned[eid]) configUnassigned[eid] = [];
+  if(!configUnassigned[eid].some(function(x){ return String(x)===sidStr; })){
+    configUnassigned[eid].push(sidStr);
+  }
   renderConfig();updateConfigMap();checkConfirmBtn();
 }
 var elabsConfirmadas={'006':false,'225':false};
@@ -1566,6 +1596,112 @@ function exportarExcelSemanal(){
   toast('📊 Excel semanal descargado','📊');
 }
 
+// ── REPORTE MODAL ──
+var reportElabSel = '006';
+
+function abrirReportModal(){
+  var m = document.getElementById('report-modal');
+  m.style.display = 'flex';
+  // Fecha por defecto = hoy
+  document.getElementById('report-fecha').value = hoyStr();
+  document.getElementById('report-status').textContent = '';
+  selReportElab(opElab || '006');
+}
+
+function selReportElab(eid){
+  reportElabSel = eid;
+  var b006 = document.getElementById('rep-elab-006');
+  var b225 = document.getElementById('rep-elab-225');
+  if(eid==='006'){
+    b006.style.background='var(--r1s)'; b006.style.borderColor='var(--r1)'; b006.style.color='var(--r1)';
+    b225.style.background='transparent'; b225.style.borderColor='rgba(255,255,255,.1)'; b225.style.color='rgba(255,255,255,.3)';
+  } else {
+    b225.style.background='var(--r2s)'; b225.style.borderColor='var(--r2)'; b225.style.color='var(--r2)';
+    b006.style.background='transparent'; b006.style.borderColor='rgba(255,255,255,.1)'; b006.style.color='rgba(255,255,255,.3)';
+  }
+}
+
+async function generarPDFDesdeSheets(){
+  var fecha = document.getElementById('report-fecha').value;
+  var eid   = reportElabSel;
+  if(!fecha){ toast('Seleccioná una fecha','⚠️'); return; }
+  var status = document.getElementById('report-status');
+  status.textContent = 'Consultando Google Sheets…';
+
+  try {
+    // Traer todas las vueltas (1, 2, 3) para esa fecha y elab
+    var promesas = [1,2,3].map(function(v){
+      return fetch(GS_URL+'?action=getConfig&fecha='+fecha+'&vuelta='+v+'&elabId='+eid)
+        .then(function(r){ return r.json(); })
+        .then(function(d){ return {vuelta:v, paradas: d.ok ? d.paradas : []}; });
+    });
+    var resultados = await Promise.all(promesas);
+
+    // También traer estados
+    var estPromesas = [1,2,3].map(function(v){
+      return fetch(GS_URL+'?action=getEstado&fecha='+fecha+'&vuelta='+v+'&elabId='+eid)
+        .then(function(r){ return r.json(); })
+        .then(function(d){ return {vuelta:v, estados: d.ok ? d.estados : {}}; });
+    });
+    var estResultados = await Promise.all(estPromesas);
+
+    // Combinar paradas con estados
+    var secciones = [];
+    resultados.forEach(function(res, i){
+      if(!res.paradas || !res.paradas.length) return;
+      var estados = estResultados[i].estados || {};
+      // Reconstruir estructura de trucks y paradas
+      var trucksObj = {}, paradasObj = {};
+      res.paradas.forEach(function(p){
+        var pid = String(p.id);
+        var est = estados[pid] || {};
+        paradasObj[pid] = {
+          id: pid, suc: p.suc, dir: p.dir, orden: p.orden,
+          truckId: p.truckId, truckName: p.truckName,
+          etaMin: p.etaMin,
+          status:   est.status   || 'pendiente',
+          tsInicio: est.tsInicio || '',
+          tsFin:    est.tsFin    || '',
+        };
+        if(!trucksObj[p.truckId]){
+          trucksObj[p.truckId] = {
+            name: p.truckName, elabId: eid,
+            color: p.truckId.indexOf('T1')>-1 ?
+              (eid==='006'?'#f97316':'#818cf8') :
+              (eid==='006'?'#fbbf24':'#a78bfa'),
+            paradaIds: []
+          };
+        }
+        if(!trucksObj[p.truckId].paradaIds.includes(pid))
+          trucksObj[p.truckId].paradaIds.push(pid);
+      });
+      // Ordenar paradas por orden
+      Object.keys(trucksObj).forEach(function(tid){
+        trucksObj[tid].paradaIds.sort(function(a,b){
+          return (paradasObj[a]?.orden||0)-(paradasObj[b]?.orden||0);
+        });
+      });
+      secciones.push({vuelta: res.vuelta, trucksObj: trucksObj, paradasObj: paradasObj});
+    });
+
+    if(!secciones.length){
+      status.textContent = 'No hay datos para esa fecha/elaboradora.';
+      return;
+    }
+
+    status.textContent = 'Generando PDF…';
+    document.getElementById('report-modal').style.display = 'none';
+
+    // Llamar generarPDF con los datos de Sheets
+    generarPDFConDatos(secciones, eid, fecha);
+    status.textContent = '';
+
+  } catch(err){
+    status.textContent = 'Error: '+err.message;
+    console.error(err);
+  }
+}
+
 // ── PDF ──
 function generarPDF(){
   const {jsPDF}=window.jspdf;
@@ -1688,7 +1824,7 @@ function generarPDF(){
     doc.rect(M-1, yStart-5, W-2*M+2, yEnd-yStart+5, 'S');
   }
 
-  // ── SECCIONES: vueltas cerradas + vuelta activa ──
+  // Construir secciones desde memoria (sesión actual)
   var secciones = [];
   (historialVueltas[opElab]||[]).forEach(function(h){
     secciones.push({vuelta:h.vuelta, trucksObj:h.trucks,
@@ -1701,70 +1837,143 @@ function generarPDF(){
         .reduce(function(a,kv){a[kv[0]]=kv[1];return a;},{}),
       paradasObj:paradas});
   }
+  generarPDFConDatos(secciones, opElab, hoyStr());
+}
+
+// Función compartida que renderiza el PDF dado secciones, elab y fecha
+function generarPDFConDatos(secciones, elabId, fecha){
+  const {jsPDF}=window.jspdf;
+  const doc2=new jsPDF({orientation:'landscape',unit:'mm',format:'a4'});
+  const elab2=ELABS[elabId]||{nombre:elabId, dir:''};
+  const W2=297, M2=12; let y2=14;
+
+  // Reutilizar las funciones internas redefinidas localmente
+  function drawBg(){ doc2.setFillColor(10,5,0); doc2.rect(0,0,W2,210,'F'); }
+  drawBg();
+
+  // Header
+  doc2.setFillColor(17,8,0); doc2.rect(0,0,W2,26,'F');
+  doc2.setFontSize(18);doc2.setFont('helvetica','bold');doc2.setTextColor(240,180,41);
+  doc2.text('PANRUTA — REPORTE DE ENTREGAS',M2,11);
+  doc2.setFontSize(9);doc2.setFont('helvetica','normal');doc2.setTextColor(180,155,100);
+  doc2.text(elab2.nombre+' · '+elab2.dir, M2, 19);
+  var fechaDisplay = fecha.split('-').reverse().join('/');
+  doc2.text(fechaDisplay, W2-M2, 19, {align:'right'});
+  doc2.setDrawColor(240,180,41);doc2.setLineWidth(0.5);doc2.line(0,26,W2,26);
+  y2=34;
+
+  var colX2=[M2,M2+10,M2+34,M2+96,M2+120,M2+144,M2+162,M2+185];
+
+  function drawHdr2(yy){
+    doc2.setFillColor(40,24,5);doc2.rect(M2-1,yy-5,W2-2*M2+2,8,'F');
+    doc2.setDrawColor(240,180,41);doc2.setLineWidth(0.4);
+    doc2.line(M2-1,yy-5,W2-M2+1,yy-5);doc2.line(M2-1,yy+3,W2-M2+1,yy+3);
+    doc2.setFontSize(8.5);doc2.setFont('helvetica','bold');doc2.setTextColor(255,220,80);
+    ['#','SUCURSAL','DIRECCION','SALIDA','ENTREGA','ETA','DEMORA','ESTADO']
+      .forEach(function(h,i){ doc2.text(h,colX2[i]+1,yy); });
+    return yy+7;
+  }
+
+  function drawRow2(p,ri,yy){
+    if(ri%2===0){doc2.setFillColor(28,17,4);doc2.rect(M2-1,yy-4,W2-2*M2+2,7,'F');}
+    else{doc2.setFillColor(12,7,1);doc2.rect(M2-1,yy-4,W2-2*M2+2,7,'F');}
+    doc2.setDrawColor(40,28,8);doc2.setLineWidth(0.15);doc2.line(M2-1,yy+3,W2-M2+1,yy+3);
+    doc2.setFontSize(8.5);
+    doc2.setFont('helvetica','normal');doc2.setTextColor(200,170,100);
+    doc2.text(String(p.orden||''),colX2[0]+1,yy);
+    doc2.setFont('helvetica','bold');doc2.setTextColor(255,255,255);
+    doc2.text('Suc. '+p.suc,colX2[1]+1,yy);
+    doc2.setFont('helvetica','normal');doc2.setTextColor(200,185,155);
+    var dir=(p.dir||''); doc2.text(dir.length>30?dir.substring(0,29)+'…':dir,colX2[2]+1,yy);
+    doc2.setFont('helvetica','bold');
+    doc2.setTextColor(p.tsInicio?80:120,p.tsInicio?200:120,p.tsInicio?100:120);
+    doc2.text(p.tsInicio||'—',colX2[3]+1,yy);
+    doc2.setTextColor(p.tsFin?80:120,p.tsFin?220:120,p.tsFin?100:120);
+    doc2.text(p.tsFin||'—',colX2[4]+1,yy);
+    doc2.setFont('helvetica','normal');doc2.setTextColor(100,170,255);
+    doc2.text(p.etaMin!=null?p.etaMin+'min':'—',colX2[5]+1,yy);
+    var dMin='—', dNum=null;
+    if(p.tsInicio&&p.tsFin){
+      try{var t1=p.tsInicio.split(':'),t2=p.tsFin.split(':');
+        dNum=(parseInt(t2[0])*60+parseInt(t2[1]))-(parseInt(t1[0])*60+parseInt(t1[1]));
+        dMin=dNum+'min';}catch(e){}
+    }
+    var late=dNum!=null&&p.etaMin!=null&&dNum>p.etaMin+2;
+    doc2.setFont('helvetica','bold');
+    doc2.setTextColor(late?248:80,late?80:220,late?80:100);
+    doc2.text(dMin,colX2[6]+1,yy);
+    var est=p.status==='entregado'?(late?'CON DEMORA':'A TIEMPO'):(p.status==='en-camino'?'EN CAMINO':'PENDIENTE');
+    var br,bg2,bb,tr,tg,tb;
+    if(est==='A TIEMPO'){br=10;bg2=40;bb=15;tr=80;tg=220;tb=100;}
+    else if(est==='CON DEMORA'){br=50;bg2=10;bb=10;tr=248;tg=80;tb=80;}
+    else if(est==='EN CAMINO'){br=30;bg2=25;bb=5;tr=240;tg=160;tb=40;}
+    else{br=20;bg2=20;bb=20;tr=130;tg=130;tb=130;}
+    doc2.setFillColor(br,bg2,bb);doc2.roundedRect(colX2[7],yy-3.5,24,5.5,1,1,'F');
+    doc2.setFontSize(7);doc2.setFont('helvetica','bold');doc2.setTextColor(tr,tg,tb);
+    doc2.text(est,colX2[7]+12,yy,{align:'center'});
+    return yy+7;
+  }
+
+  function drawBorder2(yS,yE){
+    doc2.setDrawColor(240,180,41);doc2.setLineWidth(0.4);
+    doc2.rect(M2-1,yS-5,W2-2*M2+2,yE-yS+5,'S');
+  }
 
   secciones.forEach(function(sec){
+    // Separador de vuelta si hay más de una
     if(secciones.length>1){
-      if(y>160){doc.addPage();doc.setFillColor(10,5,0);doc.rect(0,0,W,210,'F');y=14;}
-      doc.setFillColor(5,3,0);doc.rect(M-1,y-5,W-2*M+2,8,'F');
-      doc.setDrawColor(200,140,30);doc.setLineWidth(0.3);doc.rect(M-1,y-5,W-2*M+2,8,'S');
-      doc.setFontSize(9);doc.setFont('helvetica','bold');doc.setTextColor(200,150,50);
-      doc.text('VUELTA '+sec.vuelta,M+2,y);y+=7;
+      if(y2>160){doc2.addPage();drawBg();y2=14;}
+      doc2.setFillColor(5,3,0);doc2.rect(M2-1,y2-5,W2-2*M2+2,8,'F');
+      doc2.setDrawColor(200,140,30);doc2.setLineWidth(0.3);doc2.rect(M2-1,y2-5,W2-2*M2+2,8,'S');
+      doc2.setFontSize(9);doc2.setFont('helvetica','bold');doc2.setTextColor(200,150,50);
+      doc2.text('VUELTA '+sec.vuelta,M2+2,y2);y2+=7;
     }
 
     Object.entries(sec.trucksObj).forEach(function(entry){
       var tid=entry[0],t=entry[1];
       var tps=t.paradaIds.map(function(id){return sec.paradasObj[id];}).filter(Boolean);
       if(!tps.length) return;
-
-      if(y>170){doc.addPage();doc.setFillColor(10,5,0);doc.rect(0,0,W,210,'F');y=14;}
-
-      doc.setFillColor(30,18,3);doc.rect(M-1,y-6,W-2*M+2,9,'F');
-      doc.setDrawColor(240,180,41);doc.setLineWidth(0.5);doc.line(M-1,y-6,W-M+1,y-6);
-      doc.setFontSize(11);doc.setFont('helvetica','bold');
-      var rgb=hexToRgb(t.color||'#f97316');doc.setTextColor(rgb[0],rgb[1],rgb[2]);
+      if(y2>170){doc2.addPage();drawBg();y2=14;}
+      doc2.setFillColor(30,18,3);doc2.rect(M2-1,y2-6,W2-2*M2+2,9,'F');
+      doc2.setDrawColor(240,180,41);doc2.setLineWidth(0.5);doc2.line(M2-1,y2-6,W2-M2+1,y2-6);
+      doc2.setFontSize(11);doc2.setFont('helvetica','bold');
+      var rgb=hexToRgb(t.color||'#f97316');doc2.setTextColor(rgb[0],rgb[1],rgb[2]);
       var nCam=t.name.toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
-      doc.text(nCam,M+1,y);
+      doc2.text(nCam,M2+1,y2);
+      doc2.setFontSize(7);doc2.setFont('helvetica','normal');doc2.setTextColor(200,155,60);
+      doc2.text('VUELTA '+sec.vuelta,M2+1+doc2.getTextWidth(nCam)+4,y2);
       var done=tps.filter(function(p){return p.status==='entregado';}).length;
-      doc.setFontSize(9);doc.setTextColor(180,155,100);
-      doc.text(done+'/'+tps.length+' entregas',W-M,y,{align:'right'});
-      y+=6;
-
-      var tSY=y; y=drawTableHeader(y);
-      tps.forEach(function(p,ri){y=drawRow(p,ri,y);});
-      drawTableBorder(tSY,y);
-
+      doc2.setFontSize(9);doc2.setTextColor(180,155,100);
+      doc2.text(done+'/'+tps.length+' entregas',W2-M2,y2,{align:'right'});
+      y2+=6;
+      var tSY=y2; y2=drawHdr2(y2);
+      tps.forEach(function(p,ri){y2=drawRow2(p,ri,y2);});
+      drawBorder2(tSY,y2);
       var fi=tps.find(function(p){return p.tsInicio;});
       var li=[...tps].reverse().find(function(p){return p.tsFin;});
-      doc.setFontSize(7.5);doc.setFont('helvetica','italic');doc.setTextColor(140,115,70);
-      doc.text('Primera salida: '+(fi&&fi.tsInicio?fi.tsInicio:'—')+'     Última entrega: '+(li&&li.tsFin?li.tsFin:'—'),M,y+5);
-      y+=14;
+      doc2.setFontSize(7.5);doc2.setFont('helvetica','italic');doc2.setTextColor(140,115,70);
+      doc2.text('Primera salida: '+(fi&&fi.tsInicio?fi.tsInicio:'—')+'     Última entrega: '+(li&&li.tsFin?li.tsFin:'—'),M2,y2+5);
+      y2+=14;
     });
   });
 
-  // ── RESUMEN ──
-  if(y>170){
-    doc.addPage();
-    doc.setFillColor(10,5,0);doc.rect(0,0,W,210,'F');
-    y=14;
-  }
-  doc.setFillColor(17,8,0);
-  doc.rect(M-1,y-5,W-2*M+2,36,'F');
-  doc.setDrawColor(240,180,41);doc.setLineWidth(0.4);
-  doc.rect(M-1,y-5,W-2*M+2,36,'S');
-  doc.setFontSize(11);doc.setFont('helvetica','bold');doc.setTextColor(240,180,41);
-  doc.text('RESUMEN TOTAL',M+1,y);y+=8;
-  const allPs=Object.values(paradas).filter(p=>p.elabId===opElab);
-  const comp=allPs.filter(p=>p.status==='entregado').length;
-  doc.setFontSize(9);doc.setFont('helvetica','normal');doc.setTextColor(200,180,130);
-  doc.text('Elaboradora: '+elab.nombre, M+2, y);y+=6;
-  doc.text('Total paradas: '+allPs.length+'     Completadas: '+comp+' ('+Math.round(comp/Math.max(allPs.length,1)*100)+'%)', M+2, y);y+=6;
-  doc.text('Camiones: '+Object.values(trucks).filter(t=>t.elabId===opElab).length, M+2, y);
-
-  // Footer
-  doc.setFontSize(7);doc.setTextColor(80,65,40);
-  doc.text('PanRuta — Sistema de Entregas en Tiempo Real',W/2,200,{align:'center'});
-
-  doc.save('PanRuta_'+opElab+'_'+hoyStr()+'.pdf');
+  // Resumen
+  if(y2>160){doc2.addPage();drawBg();y2=14;}
+  doc2.setFillColor(17,8,0);doc2.rect(M2-1,y2-5,W2-2*M2+2,36,'F');
+  doc2.setDrawColor(240,180,41);doc2.setLineWidth(0.4);doc2.rect(M2-1,y2-5,W2-2*M2+2,36,'S');
+  doc2.setFontSize(11);doc2.setFont('helvetica','bold');doc2.setTextColor(240,180,41);
+  doc2.text('RESUMEN TOTAL',M2+1,y2);y2+=8;
+  var allPs2=[];
+  secciones.forEach(function(s){ allPs2=allPs2.concat(Object.values(s.paradasObj).filter(function(p){return p.elabId===elabId||!p.elabId;})); });
+  var comp2=allPs2.filter(function(p){return p.status==='entregado';}).length;
+  var trucks2=new Set(); secciones.forEach(function(s){Object.keys(s.trucksObj).forEach(function(k){trucks2.add(k);});});
+  doc2.setFontSize(9);doc2.setFont('helvetica','normal');doc2.setTextColor(200,180,130);
+  doc2.text('Elaboradora: '+elab2.nombre,M2+2,y2);y2+=6;
+  doc2.text('Fecha: '+fechaDisplay+'     Total paradas: '+allPs2.length+'     Completadas: '+comp2+' ('+Math.round(comp2/Math.max(allPs2.length,1)*100)+' %)',M2+2,y2);y2+=6;
+  doc2.text('Camiones: '+trucks2.size+'     Vueltas: '+secciones.length,M2+2,y2);
+  doc2.setFontSize(7);doc2.setTextColor(80,65,40);
+  doc2.text('PanRuta — Sistema de Entregas en Tiempo Real',W2/2,200,{align:'center'});
+  doc2.save('PanRuta_'+elabId+'_'+fecha+'.pdf');
 }
 
 function hexToRgb(hex){
