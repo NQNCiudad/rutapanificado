@@ -8,7 +8,7 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
 <style>
 :root{--dark:#0d0a05;--panel:#090705;--cream:#f0ebe0;--border:rgba(255,255,255,0.07);--amber:#d4840a;--gold:#f0b429;--r1:#f97316;--r1s:rgba(249,115,22,0.13);--r2:#818cf8;--r2s:rgba(129,140,248,0.13);--green:#22c55e;}
 *{margin:0;padding:0;box-sizing:border-box;}
@@ -490,7 +490,7 @@ body.light .admin-pin-input{background:rgba(255,255,255,.6);border-color:rgba(0,
     <div class="list-hdr">📦 Paradas</div>
     <div class="cards-wrap" id="cards-wrap"></div>
     <button class="pdf-btn" id="pdf-btn" onclick="abrirReportModal()">📄 Reporte PDF del día</button>
-    <button class="xlsx-btn" onclick="exportarExcelSemanal()">📊 Historial Semanal Excel</button>
+    <button class="xlsx-btn" onclick="abrirExcelModal()">📊 Historial Excel</button>
   </div>
   <div class="map-wrap">
     <div id="map-op"></div>
@@ -538,13 +538,41 @@ body.light .admin-pin-input{background:rgba(255,255,255,.6);border-color:rgba(0,
     </div>
   </div>
 </div>
+<div id="excel-modal" style="position:fixed;inset:0;z-index:9994;background:rgba(9,7,5,.9);backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;">
+  <div style="background:#120d05;border:1px solid rgba(34,197,94,.3);border-radius:14px;padding:24px 22px;max-width:420px;width:92%;display:flex;flex-direction:column;gap:14px;">
+    <div style="font-family:'Bebas Neue',cursive;font-size:20px;letter-spacing:2px;color:#4ade80;">📊 HISTORIAL EXCEL</div>
+    <div style="font-size:11px;color:rgba(255,255,255,.4);line-height:1.5;">Seleccioná el período para descargar desde Google Sheets.</div>
+    <div style="display:flex;gap:10px;">
+      <div style="flex:1;display:flex;flex-direction:column;gap:6px;">
+        <label style="font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.3);">Desde</label>
+        <input type="date" id="excel-desde" style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);border-radius:7px;color:var(--cream);font-size:13px;padding:7px 10px;font-family:inherit;width:100%;">
+      </div>
+      <div style="flex:1;display:flex;flex-direction:column;gap:6px;">
+        <label style="font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.3);">Hasta</label>
+        <input type="date" id="excel-hasta" style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);border-radius:7px;color:var(--cream);font-size:13px;padding:7px 10px;font-family:inherit;width:100%;">
+      </div>
+    </div>
+    <div id="excel-status" style="font-size:10px;color:rgba(74,222,128,.6);min-height:16px;font-family:'JetBrains Mono',monospace;"></div>
+    <div style="display:flex;gap:8px;">
+      <button onclick="descargarExcelDesdeSheets()" style="flex:1;padding:10px;border-radius:8px;border:1px solid rgba(34,197,94,.4);background:rgba(34,197,94,.12);color:#4ade80;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;">📥 Descargar Excel</button>
+      <button onclick="document.getElementById('excel-modal').style.display='none'" style="flex:1;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:rgba(255,255,255,.35);font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;">Cancelar</button>
+    </div>
+  </div>
+</div>
+
 <div id="report-modal" style="position:fixed;inset:0;z-index:9993;background:rgba(9,7,5,.9);backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;">
   <div style="background:#120d05;border:1px solid rgba(240,180,41,.35);border-radius:14px;padding:24px 22px;max-width:400px;width:92%;display:flex;flex-direction:column;gap:14px;">
     <div style="font-family:'Bebas Neue',cursive;font-size:20px;letter-spacing:2px;color:var(--gold);">📄 REPORTE DE ENTREGAS</div>
     <div style="font-size:11px;color:rgba(255,255,255,.4);line-height:1.5;">Seleccioná la fecha y elaboradora para generar el reporte PDF con datos desde Google Sheets.</div>
-    <div style="display:flex;flex-direction:column;gap:8px;">
-      <label style="font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.3);">Fecha</label>
-      <input type="date" id="report-fecha" style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);border-radius:7px;color:var(--cream);font-size:13px;padding:7px 10px;font-family:inherit;width:100%;">
+    <div style="display:flex;gap:10px;">
+      <div style="flex:1;display:flex;flex-direction:column;gap:6px;">
+        <label style="font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.3);">Desde</label>
+        <input type="date" id="report-desde" style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);border-radius:7px;color:var(--cream);font-size:13px;padding:7px 10px;font-family:inherit;width:100%;">
+      </div>
+      <div style="flex:1;display:flex;flex-direction:column;gap:6px;">
+        <label style="font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.3);">Hasta</label>
+        <input type="date" id="report-hasta" style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);border-radius:7px;color:var(--cream);font-size:13px;padding:7px 10px;font-family:inherit;width:100%;">
+      </div>
     </div>
     <div style="display:flex;flex-direction:column;gap:8px;">
       <label style="font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.3);">Elaboradora</label>
@@ -1551,65 +1579,239 @@ function guardarHistorialDia(){
 }
 function sumarMin2(ts,min){return sumarMin(ts,min);}
 
+function abrirExcelModal(){
+  document.getElementById('excel-modal').style.display = 'flex';
+  document.getElementById('excel-desde').value = hoyStr();
+  document.getElementById('excel-hasta').value = hoyStr();
+  document.getElementById('excel-status').textContent = '';
+}
+
+async function descargarExcelDesdeSheets(){
+  var desde = document.getElementById('excel-desde').value;
+  var hasta = document.getElementById('excel-hasta').value;
+  if(!desde||!hasta){ toast('Seleccioná el período','⚠️'); return; }
+  var status = document.getElementById('excel-status');
+  status.textContent = 'Consultando Google Sheets…';
+  try {
+    var r = await fetch(GS_URL+'?action=getHistorial&desde='+desde+'&hasta='+hasta);
+    var data = await r.json();
+    if(!data.ok || !data.entregas || !data.entregas.length){
+      status.textContent = 'No hay registros para ese período.';
+      return;
+    }
+    status.textContent = 'Generando Excel con '+data.entregas.length+' registros…';
+    document.getElementById('excel-modal').style.display = 'none';
+    // Agrupar por fecha
+    var byFecha = {};
+    data.entregas.forEach(function(e){
+      var f = e.fecha || desde;
+      if(!byFecha[f]) byFecha[f] = [];
+      byFecha[f].push({
+        elabId:e.elabId, truckName:e.truckName, truckId:e.truckId,
+        suc:e.sucId, dir:e.dir, orden:e.orden,
+        tsInicio:e.tsInicio, tsFin:e.tsFin,
+        etaMin:e.etaMin, status:e.tsFin?'entregado':'pendiente'
+      });
+    });
+    var hist = Object.keys(byFecha).sort().map(function(f){ return {fecha:f, paradas:byFecha[f]}; });
+    generarExcelConDatos(hist, desde+(desde!==hasta?' al '+hasta:''));
+  } catch(err){
+    status.textContent = 'Error: '+err.message;
+    console.error(err);
+  }
+}
+
 function exportarExcelSemanal(){
   const hist=JSON.parse(localStorage.getItem(STORAGE_KEY_HIST)||'[]');
-  if(Object.keys(paradas).length){
-    const hoy=hoyStr();
-    if(!hist.find(h=>h.fecha===hoy)){
-      hist.push({fecha:hoy,paradas:Object.values(paradas).map(p=>({elabId:p.elabId,suc:p.suc,dir:p.dir,truckName:p.truckName,orden:p.orden,status:p.status,tsInicio:p.tsInicio,tsFin:p.tsFin,etaMin:p.etaMin}))});
-    }
+  if(!hist.length){toast('No hay historial en esta sesión. Usá el botón Excel para descargar desde Sheets.','⚠️');return;}
+  generarExcelConDatos(hist, hoyStr());
+}
+
+function generarExcelConDatos(hist, fecha){
+  // ── Helpers de estilo ──
+  function cell(v, opts){
+    var c2 = {v: v, t: typeof v==='number'?'n':'s'};
+    if(opts) c2.s = opts;
+    return c2;
   }
-  if(!hist.length){toast('⚠️ No hay historial guardado todavía','⚠️');return;}
-  const wb=XLSX.utils.book_new();
 
-  // Hoja 1: Detalle
-  const d1=[['Fecha','Elaboradora','Camión','Parada','Suc.','Dirección','Salida','Entrega','ETA (min)','Estado']];
-  hist.forEach(d=>d.paradas.forEach(p=>d1.push([d.fecha,p.elabId==='006'?'Suc. 006':'Suc. 225',p.truckName,p.orden,'Suc. '+p.suc,p.dir,p.tsInicio||'',p.tsFin||'',p.etaMin!=null?p.etaMin:'',p.status])));
-  const ws1=XLSX.utils.aoa_to_sheet(d1);
-  ws1['!cols']=[{wch:12},{wch:12},{wch:12},{wch:8},{wch:10},{wch:32},{wch:10},{wch:10},{wch:10},{wch:12}];
-  XLSX.utils.book_append_sheet(wb,ws1,'Detalle Diario');
+  var GOLD  = {rgb:'F0B429'}, DARK={rgb:'110800'}, WHITE={rgb:'FFFFFF'};
+  var GREEN = {rgb:'166534'}, RED={rgb:'991B1B'}, BLUE={rgb:'1E3A5F'};
+  var LGOLD = {rgb:'FFF8EC'}, LGRAY={rgb:'F5F5F5'};
 
-  // Hoja 2: Resumen por camión
-  const d2=[['Fecha','Camión','Total','Entregadas','% Completado','Primera Salida','Última Entrega','Duración (min)']];
-  hist.forEach(d=>{
-    const byT={};
-    d.paradas.forEach(p=>{if(!byT[p.truckName])byT[p.truckName]=[];byT[p.truckName].push(p);});
-    Object.entries(byT).forEach(([truck,ps])=>{
-      const done=ps.filter(p=>p.status==='entregado').length;
-      const salidas=ps.map(p=>p.tsInicio).filter(Boolean).sort();
-      const llegadas=ps.map(p=>p.tsFin).filter(Boolean).sort();
-      const primera=salidas[0]||'',ultima=llegadas[llegadas.length-1]||'';
-      const dur=(primera&&ultima)?diffMin(primera,ultima):'';
-      d2.push([d.fecha,truck,ps.length,done,ps.length?Math.round(done/ps.length*100)+'%':'',primera,ultima,dur]);
+  var hdrStyle = { font:{bold:true,color:WHITE,sz:11},
+    fill:{patternType:'solid',fgColor:DARK},
+    alignment:{horizontal:'center',vertical:'center',wrapText:true},
+    border:{bottom:{style:'medium',color:GOLD}} };
+
+  var subhdrStyle = { font:{bold:true,color:DARK,sz:10},
+    fill:{patternType:'solid',fgColor:GOLD},
+    alignment:{horizontal:'center',vertical:'center'} };
+
+  function rowStyle(ri, status){
+    var bg = ri%2===0 ? LGOLD : {rgb:'FFFFFF'};
+    var fontColor = {rgb:'333333'};
+    if(status==='entregado') fontColor={rgb:'166534'};
+    else if(status==='pendiente') fontColor={rgb:'991B1B'};
+    return {font:{color:fontColor,sz:10},
+      fill:{patternType:'solid',fgColor:bg},
+      alignment:{vertical:'center'},
+      border:{bottom:{style:'thin',color:{rgb:'E5E5E5'}}}};
+  }
+
+  function statusStyle(status){
+    var map = {
+      'entregado':  {bg:{rgb:'DCFCE7'}, fc:{rgb:'166534'}},
+      'en-camino':  {bg:{rgb:'FEF9C3'}, fc:{rgb:'854D0E'}},
+      'pendiente':  {bg:{rgb:'FEE2E2'}, fc:{rgb:'991B1B'}},
+    };
+    var s = map[status] || {bg:{rgb:'F5F5F5'},fc:{rgb:'555555'}};
+    return {font:{bold:true,color:s.fc,sz:9},
+      fill:{patternType:'solid',fgColor:s.bg},
+      alignment:{horizontal:'center',vertical:'center'}};
+  }
+
+  function makeSheet(data, colWidths){
+    var ws = {};
+    var range = {s:{r:0,c:0}, e:{r:data.length-1,c:data[0].length-1}};
+    data.forEach(function(row,ri){
+      row.forEach(function(cell2,ci){
+        var addr = XLSX.utils.encode_cell({r:ri,c:ci});
+        ws[addr] = typeof cell2 === 'object' && cell2 !== null && 'v' in cell2
+          ? cell2 : {v: cell2===null||cell2===undefined?'':cell2, t:'s'};
+      });
+    });
+    ws['!ref'] = XLSX.utils.encode_range(range);
+    ws['!cols'] = colWidths.map(function(w){return {wch:w};});
+    ws['!rows'] = [{hpt:22}]; // header row height
+    return ws;
+  }
+
+  const wb = XLSX.utils.book_new();
+
+  // ─── HOJA 1: DETALLE ───────────────────────────────────────────────────────
+  var d1 = [[
+    cell('Fecha',hdrStyle), cell('Elaboradora',hdrStyle), cell('Camión',hdrStyle),
+    cell('#',hdrStyle), cell('Sucursal',hdrStyle), cell('Dirección',hdrStyle),
+    cell('Salida',hdrStyle), cell('Entrega',hdrStyle), cell('ETA (min)',hdrStyle),
+    cell('Demora Real',hdrStyle), cell('Estado',hdrStyle)
+  ]];
+
+  var ri1 = 0;
+  hist.forEach(function(d){
+    d.paradas.forEach(function(p){
+      var rs = rowStyle(ri1, p.status);
+      // Calcular demora real
+      var demora = '';
+      if(p.tsInicio && p.tsFin){
+        try{
+          var t1=p.tsInicio.split(':'), t2=p.tsFin.split(':');
+          var mins=(parseInt(t2[0])*60+parseInt(t2[1]))-(parseInt(t1[0])*60+parseInt(t1[1]));
+          demora = mins+'min';
+        }catch(e){}
+      }
+      d1.push([
+        cell(d.fecha, rs),
+        cell(p.elabId==='006'?'Suc. 006':'Suc. 225', rs),
+        cell(p.truckName||'', rs),
+        cell(p.orden||'', {font:{sz:10},fill:rs.fill,alignment:{horizontal:'center'},border:rs.border}),
+        cell('Suc. '+p.suc, {font:{bold:true,sz:10,color:{rgb:'1a0d00'}},fill:rs.fill,border:rs.border}),
+        cell(p.dir||'', rs),
+        cell(p.tsInicio||'—', {font:{sz:10,color:{rgb:'166534'}},fill:rs.fill,border:rs.border}),
+        cell(p.tsFin||'—', {font:{sz:10,color:{rgb:'166534'}},fill:rs.fill,border:rs.border}),
+        cell(p.etaMin!=null?p.etaMin:'', {font:{sz:10,color:{rgb:'1E3A8A'}},fill:rs.fill,alignment:{horizontal:'center'},border:rs.border}),
+        cell(demora||'—', rs),
+        cell(p.status||'pendiente', statusStyle(p.status)),
+      ]);
+      ri1++;
     });
   });
-  const ws2=XLSX.utils.aoa_to_sheet(d2);
-  ws2['!cols']=[{wch:12},{wch:12},{wch:8},{wch:10},{wch:14},{wch:14},{wch:14},{wch:14}];
-  XLSX.utils.book_append_sheet(wb,ws2,'Resumen por Camión');
 
-  // Hoja 3: Promedio por sucursal
-  const sucStats={};
-  hist.forEach(d=>d.paradas.forEach(p=>{
-    const k=p.elabId+'-'+p.suc;
-    if(!sucStats[k]) sucStats[k]={suc:p.suc,elabId:p.elabId,dir:p.dir,llegadas:[]};
-    if(p.tsFin) sucStats[k].llegadas.push(p.tsFin);
-  }));
-  const d3=[['Sucursal','Elaboradora','Dirección','Días con datos','Hora promedio entrega']];
-  Object.values(sucStats).forEach(s=>{
-    let avg='';
-    if(s.llegadas.length){
-      const mins=s.llegadas.map(t=>{const p=t.split(':').map(Number);return p[0]*60+p[1];});
-      const am=Math.round(mins.reduce((a,b)=>a+b,0)/mins.length);
-      avg=String(Math.floor(am/60)).padStart(2,'0')+':'+String(am%60).padStart(2,'0');
-    }
-    d3.push(['Suc. '+s.suc,s.elabId==='006'?'Suc. 006':'Suc. 225',s.dir,s.llegadas.length,avg]);
+  var ws1 = makeSheet(d1, [12,14,13,5,11,32,10,10,10,12,13]);
+  ws1['!freeze'] = {xSplit:0, ySplit:1}; // congelar primera fila
+  XLSX.utils.book_append_sheet(wb, ws1, 'Detalle Diario');
+
+  // ─── HOJA 2: RESUMEN POR CAMIÓN ────────────────────────────────────────────
+  var d2 = [[
+    cell('Fecha',hdrStyle), cell('Camión',hdrStyle), cell('Total',hdrStyle),
+    cell('Entregadas',hdrStyle), cell('% Completado',hdrStyle),
+    cell('Primera Salida',hdrStyle), cell('Última Entrega',hdrStyle), cell('Duración (min)',hdrStyle)
+  ]];
+
+  var ri2=0;
+  hist.forEach(function(d){
+    var byT={};
+    d.paradas.forEach(function(p){if(!byT[p.truckName])byT[p.truckName]=[];byT[p.truckName].push(p);});
+    Object.entries(byT).forEach(function(entry){
+      var truck=entry[0], ps=entry[1];
+      var rs2=rowStyle(ri2);
+      var done=ps.filter(function(p){return p.status==='entregado';}).length;
+      var salidas=ps.map(function(p){return p.tsInicio;}).filter(Boolean).sort();
+      var llegadas=ps.map(function(p){return p.tsFin;}).filter(Boolean).sort();
+      var primera=salidas[0]||'', ultima=llegadas[llegadas.length-1]||'';
+      var dur=(primera&&ultima)?diffMin(primera,ultima):'';
+      var pct=ps.length?Math.round(done/ps.length*100):0;
+      var pctStyle={font:{bold:true,sz:10,color:{rgb:pct>=100?'166534':pct>=50?'854D0E':'991B1B'}},
+        fill:rs2.fill,alignment:{horizontal:'center'},border:rs2.border};
+      d2.push([
+        cell(d.fecha,rs2), cell(truck,{font:{bold:true,sz:10},fill:rs2.fill,border:rs2.border}),
+        cell(ps.length,{font:{sz:10},fill:rs2.fill,alignment:{horizontal:'center'},border:rs2.border}),
+        cell(done,{font:{sz:10},fill:rs2.fill,alignment:{horizontal:'center'},border:rs2.border}),
+        cell(pct+'%',pctStyle),
+        cell(primera,rs2), cell(ultima,rs2),
+        cell(dur,{font:{sz:10},fill:rs2.fill,alignment:{horizontal:'center'},border:rs2.border}),
+      ]);
+      ri2++;
+    });
   });
-  const ws3=XLSX.utils.aoa_to_sheet(d3);
-  ws3['!cols']=[{wch:10},{wch:12},{wch:32},{wch:14},{wch:20}];
-  XLSX.utils.book_append_sheet(wb,ws3,'Promedio por Sucursal');
+
+  var ws2 = makeSheet(d2,[12,14,8,10,13,14,14,14]);
+  XLSX.utils.book_append_sheet(wb, ws2, 'Resumen por Camión');
+
+  // ─── HOJA 3: PROMEDIO POR SUCURSAL ────────────────────────────────────────
+  var sucStats={};
+  hist.forEach(function(d){
+    d.paradas.forEach(function(p){
+      var k=p.elabId+'-'+p.suc;
+      if(!sucStats[k]) sucStats[k]={suc:p.suc,elabId:p.elabId,dir:p.dir,llegadas:[],total:0,entregadas:0};
+      sucStats[k].total++;
+      if(p.tsFin){ sucStats[k].llegadas.push(p.tsFin); sucStats[k].entregadas++; }
+    });
+  });
+
+  var d3=[[
+    cell('Sucursal',hdrStyle), cell('Elaboradora',hdrStyle), cell('Dirección',hdrStyle),
+    cell('Días con datos',hdrStyle), cell('Entregadas',hdrStyle), cell('Hora prom. entrega',hdrStyle)
+  ]];
+
+  var ri3=0;
+  Object.values(sucStats).forEach(function(s){
+    var rs3=rowStyle(ri3);
+    var avg='';
+    if(s.llegadas.length){
+      var totalMin=s.llegadas.reduce(function(acc,t){
+        var p2=t.split(':'); return acc+parseInt(p2[0])*60+parseInt(p2[1]);
+      },0);
+      var avgMin=Math.round(totalMin/s.llegadas.length);
+      avg=String(Math.floor(avgMin/60)).padStart(2,'0')+':'+String(avgMin%60).padStart(2,'0');
+    }
+    d3.push([
+      cell('Suc. '+s.suc,{font:{bold:true,sz:10,color:{rgb:'1a0d00'}},fill:rs3.fill,border:rs3.border}),
+      cell(s.elabId==='006'?'Suc. 006':'Suc. 225',rs3),
+      cell(s.dir||'',rs3),
+      cell(s.total,{font:{sz:10},fill:rs3.fill,alignment:{horizontal:'center'},border:rs3.border}),
+      cell(s.entregadas,{font:{sz:10},fill:rs3.fill,alignment:{horizontal:'center'},border:rs3.border}),
+      cell(avg||'—',{font:{sz:10,color:{rgb:'166534'}},fill:rs3.fill,alignment:{horizontal:'center'},border:rs3.border}),
+    ]);
+    ri3++;
+  });
+
+  var ws3=makeSheet(d3,[11,14,34,14,12,18]);
+  XLSX.utils.book_append_sheet(wb, ws3, 'Promedio por Sucursal');
 
   XLSX.writeFile(wb,'PanRuta_Historial_'+hoyStr().replace(/-/g,'')+'.xlsx');
-  toast('📊 Excel semanal descargado','📊');
+  toast('Excel descargado con formato','📊');
+
 }
 
 // ── REPORTE MODAL ──
@@ -1619,7 +1821,8 @@ function abrirReportModal(){
   var m = document.getElementById('report-modal');
   m.style.display = 'flex';
   // Fecha por defecto = hoy
-  document.getElementById('report-fecha').value = hoyStr();
+  document.getElementById('report-desde').value = hoyStr();
+  document.getElementById('report-hasta').value = hoyStr();
   document.getElementById('report-status').textContent = '';
   selReportElab(opElab || '006');
 }
@@ -1638,16 +1841,17 @@ function selReportElab(eid){
 }
 
 async function generarPDFDesdeSheets(){
-  var fecha = document.getElementById('report-fecha').value;
-  var eid   = reportElabSel;
-  if(!fecha){ toast('Seleccioná una fecha','⚠️'); return; }
+  var desde = document.getElementById('report-desde').value;
+  var hasta  = document.getElementById('report-hasta').value;
+  var eid    = reportElabSel;
+  if(!desde||!hasta){ toast('Seleccioná el período','⚠️'); return; }
   var status = document.getElementById('report-status');
   status.textContent = 'Consultando Google Sheets…';
 
   try {
     // Traer todas las vueltas (1, 2, 3) para esa fecha y elab
     var promesas = [1,2,3].map(function(v){
-      return fetch(GS_URL+'?action=getConfig&fecha='+fecha+'&vuelta='+v+'&elabId='+eid)
+      return fetch(GS_URL+'?action=getConfig&desde='+desde+'&hasta='+hasta+'&vuelta='+v+'&elabId='+eid)
         .then(function(r){ return r.json(); })
         .then(function(d){ return {vuelta:v, paradas: d.ok ? d.paradas : []}; });
     });
@@ -1655,7 +1859,7 @@ async function generarPDFDesdeSheets(){
 
     // También traer estados
     var estPromesas = [1,2,3].map(function(v){
-      return fetch(GS_URL+'?action=getEstado&fecha='+fecha+'&vuelta='+v+'&elabId='+eid)
+      return fetch(GS_URL+'?action=getEstado&desde='+desde+'&hasta='+hasta+'&vuelta='+v+'&elabId='+eid)
         .then(function(r){ return r.json(); })
         .then(function(d){ return {vuelta:v, estados: d.ok ? d.estados : {}}; });
     });
@@ -1709,7 +1913,8 @@ async function generarPDFDesdeSheets(){
     document.getElementById('report-modal').style.display = 'none';
 
     // Llamar generarPDF con los datos de Sheets
-    generarPDFConDatos(secciones, eid, fecha);
+    var label = desde+(desde!==hasta?' al '+hasta:'');
+    generarPDFConDatos(secciones, eid, label);
     status.textContent = '';
 
   } catch(err){
