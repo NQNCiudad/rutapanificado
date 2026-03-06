@@ -1497,28 +1497,44 @@ function confirmModal(){
 function hoyStr(){return new Date().toISOString().slice(0,10);}
 function checkResetDiario(){
   const last=localStorage.getItem(STORAGE_KEY_DATE),hoy=hoyStr();
-  if(last&&last!==hoy){
-    document.getElementById('reset-sub').textContent='Ayer fue '+last+'. ¿Querés reiniciar las rutas de hoy? Los datos se guardan en el historial semanal.';
-    document.getElementById('reset-modal').classList.add('open');
+  if(last && last!==hoy){
+    // Nuevo día detectado — reiniciar automáticamente sin preguntar
+    ejecutarReset();
+    toast('Nuevo día — rutas reiniciadas automáticamente','🌅');
   } else {
     localStorage.setItem(STORAGE_KEY_DATE,hoy);
   }
 }
 function closeResetModal(){document.getElementById('reset-modal').classList.remove('open');localStorage.setItem(STORAGE_KEY_DATE,hoyStr());}
 function ejecutarReset(){
+  var fechaAyer = localStorage.getItem(STORAGE_KEY_DATE) || '';
+
+  // 1. Guardar en Historial cualquier parada activa en memoria
   Object.keys(vueltaElab).forEach(function(eid){ gsSaveHistorialVuelta(vueltaElab[eid],eid); });
-  elabsConfirmadas['006']=false; elabsConfirmadas['225']=false;
   if(Object.keys(paradas).length) guardarHistorialDia();
+
+  // 2. Limpiar Config y Estado de ayer en Sheets (mueve pendientes a Historial)
+  if(fechaAyer){
+    gsPost({action:'clearDiaAnterior', fecha:fechaAyer});
+    toast('Limpiando datos de '+fechaAyer+' en Sheets…','🗑️');
+  }
+
+  // 3. Limpiar estado local
+  elabsConfirmadas['006']=false; elabsConfirmadas['225']=false;
+  historialVueltas = {};
+  vueltaElab = {'006':1,'225':1};
   paradas={};trucks={};
   Object.values(ELABS).forEach(e=>{
-    configUnassigned[e.id]=e.sucursales.map(s=>s.id);
+    configUnassigned[e.id]=e.sucursales.map(s=>String(s.id));
     for(let i=0;i<e.numTrucks;i++) configTrucks[e.id+'-T'+(i+1)]=[];
   });
   Object.values(leafM).forEach(m=>{try{m.remove();}catch(e){}});
   Object.keys(leafM).forEach(k=>delete leafM[k]);
   Object.values(routeG).forEach(g=>g.clearLayers());
-  document.getElementById('btn-op').disabled=true;
-  document.getElementById('btn-chofer').disabled=true;
+  document.getElementById('btn-op').disabled=false;
+  document.getElementById('btn-chofer').disabled=false;
+  // Resetear botones de vuelta a V1
+  ['006','225'].forEach(function(eid){ setVueltaElab(eid,1); actualizarBtnCerrarVuelta(eid); });
   localStorage.setItem(STORAGE_KEY_DATE,hoyStr());
   closeResetModal();
   buildBaseMarkers();
