@@ -1285,7 +1285,8 @@ function buildOpMapWithRoutes(eid){
         }
       }
     });
-
+  }); // fin forEach trucks
+} // fin buildOpMapWithRoutes
 
 function updateConfigMap(){
   Object.values(confM).forEach(m=>{try{m.remove();}catch(e){}});
@@ -1812,7 +1813,7 @@ function confirmModal(){
     try{ leafM[modalPid].setStyle({fillColor:newCol}); }catch(e){}
   }
   gsSaveEstado(p);
-  drawOpLines();renderSidebar();renderChofer();closeModal();
+  // drawOpLines eliminado;renderSidebar();renderChofer();closeModal();
 }
 
 // ── RESET DIARIO ──
@@ -2498,7 +2499,7 @@ function hexToRgb(hex){
 }
 
 function postGeocodeRecalc(){
-  if(Object.keys(paradas).length>0){ recalcEtasParadas(); renderSidebar(); renderChofer(); drawOpLines(); }
+  if(Object.keys(paradas).length>0){ recalcEtasParadas(); renderSidebar(); renderChofer(); // drawOpLines eliminado; }
 }
 
 // ── TOAST ──
