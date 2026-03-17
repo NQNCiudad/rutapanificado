@@ -150,9 +150,34 @@ header::after{content:'';position:absolute;inset:0;background:linear-gradient(90
 .pdf-btn:disabled{opacity:.25;cursor:not-allowed;}
 .xlsx-btn{flex-shrink:0;margin:0 8px 6px;padding:7px;border-radius:7px;border:1px solid rgba(34,197,94,.25);background:rgba(34,197,94,.06);color:#5fe090;font-size:10.5px;font-weight:700;cursor:pointer;transition:all .2s;font-family:'DM Sans',sans-serif;text-transform:uppercase;letter-spacing:1px;display:flex;align-items:center;justify-content:center;gap:5px;}
 .xlsx-btn:hover{background:rgba(34,197,94,.14);}
-.map-wrap{flex:1;position:relative;}
-#map-op{width:100%;height:100%;background:#070503;}
-.map-legend{position:absolute;top:12px;right:12px;z-index:1000;background:rgba(9,7,5,.93);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.09);border-radius:10px;padding:10px 12px;min-width:165px;}
+.map-wrap{flex:1;position:relative;overflow-y:auto;background:var(--panel);}
+#tracker-container{padding:24px 20px;display:flex;flex-direction:column;gap:32px;}
+.tracker-elab{display:flex;flex-direction:column;gap:16px;}
+.tracker-elab-title{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;letter-spacing:.12em;color:var(--gold);text-transform:uppercase;padding-bottom:8px;border-bottom:1px solid var(--border);}
+.tracker-truck{display:flex;flex-direction:column;gap:10px;}
+.tracker-truck-name{font-size:11px;font-weight:600;color:rgba(255,255,255,.5);font-family:'JetBrains Mono',monospace;}
+.tracker-route{display:flex;align-items:center;gap:0;position:relative;padding:32px 0 14px;}
+.tracker-node{display:flex;flex-direction:column;align-items:center;position:relative;z-index:2;}
+.tracker-node-circle{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;border:2px solid rgba(255,255,255,.15);transition:background .4s,border-color .4s;flex-shrink:0;}
+.tracker-node-circle.elab-node{width:62px;height:62px;font-size:24px;border-width:3px;}
+.tracker-node-circle.pending{background:#1a1408;color:rgba(255,255,255,.3);border-color:rgba(255,255,255,.1);}
+.tracker-node-circle.active{border-color:currentColor;box-shadow:0 0 14px currentColor;animation:pulseNode 1.4s ease-in-out infinite;}
+.tracker-node-circle.done{background:#14532d;color:#22c55e;border-color:#22c55e;box-shadow:0 0 10px rgba(34,197,94,.4);}
+.tracker-node-label{font-size:9px;font-family:'JetBrains Mono',monospace;color:rgba(255,255,255,.4);margin-top:6px;text-align:center;max-width:62px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.tracker-node-label.done{color:#22c55e;}
+.tracker-node-eta{font-size:8px;font-family:'JetBrains Mono',monospace;color:rgba(255,255,255,.22);margin-top:2px;text-align:center;}
+.tracker-seg{width:80px;flex-shrink:0;height:10px;border-radius:5px;position:relative;overflow:visible;background:rgba(255,255,255,.07);margin-bottom:26px;}
+.tracker-seg-fill{height:100%;border-radius:5px;width:0%;}
+.tracker-truck-emoji{position:absolute;top:-26px;font-size:34px;transform:translateX(-50%);filter:drop-shadow(0 3px 10px rgba(0,0,0,.95));z-index:20;pointer-events:none;animation:truckMove 0.5s ease-in-out infinite alternate;}
+.tracker-truck-name{font-size:13px;font-weight:700;font-family:'JetBrains Mono',monospace;margin-bottom:6px;}
+@keyframes pulseNode{0%,100%{box-shadow:0 0 8px currentColor;}50%{box-shadow:0 0 22px currentColor,0 0 40px currentColor;}}
+@keyframes truckMove{0%{transform:translateX(-50%) scaleX(-1) scaleY(1) translateY(0);}100%{transform:translateX(-50%) scaleX(-1.15) scaleY(0.88) translateY(2px);}}
+@keyframes truckBounce{0%{transform:translateX(-50%) scale(1);} 40%{transform:translateX(-50%) scale(1.18);} 70%{transform:translateX(-50%) scale(0.92);} 100%{transform:translateX(-50%) scale(1);}}
+.tracker-truck-name{font-size:13px;font-weight:700;font-family:'JetBrains Mono',monospace;display:flex;align-items:center;gap:8px;}
+.tracker-truck-meta{font-size:10px;font-family:'JetBrains Mono',monospace;color:rgba(255,255,255,.35);margin-bottom:6px;display:flex;gap:12px;}
+.tracker-truck-meta span{display:flex;align-items:center;gap:3px;}
+.tracker-elab-origin{width:12px;height:12px;border-radius:50%;flex-shrink:0;margin-bottom:20px;margin-right:0;}
+.map-legend{display:none;}
 .leg-title{font-size:7.5px;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,.22);margin-bottom:7px;}
 .leg-row{display:flex;align-items:center;gap:7px;margin-bottom:4px;}
 .leg-row:last-child{margin-bottom:0;}
@@ -506,17 +531,8 @@ body.light .admin-pin-input{background:rgba(255,255,255,.6);border-color:rgba(0,
     <button class="pdf-btn" id="pdf-btn" onclick="abrirReportModal()">📄 Reporte PDF del día</button>
     <button class="xlsx-btn" onclick="abrirExcelModal()">📊 Historial Excel</button>
   </div>
-  <div class="map-wrap">
-    <div id="map-op"></div>
-    <button onclick="centrarMapa()" style="position:absolute;bottom:16px;right:16px;z-index:1000;background:#110800;border:1px solid rgba(240,180,41,.4);border-radius:8px;color:var(--gold);font-size:18px;width:38px;height:38px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.5);" title="Centrar mapa">🎯</button>
-    <div class="map-legend">
-      <div class="leg-title">Referencias</div>
-      <div class="leg-row"><div class="leg-dot" style="background:var(--r1)"></div><span>Elaboradora 006</span></div>
-      <div class="leg-row"><div class="leg-dot" style="background:var(--r2)"></div><span>Elaboradora 225</span></div>
-      <div class="leg-row"><div class="leg-line" style="background:rgba(255,255,255,.18)"></div><span>Pendiente</span></div>
-      <div class="leg-row"><div class="leg-line" style="background:var(--amber)"></div><span>En camino</span></div>
-      <div class="leg-row"><div class="leg-line" style="background:var(--green)"></div><span>Entregado</span></div>
-    </div>
+  <div class="map-wrap" id="tracker-wrap">
+    <div id="tracker-container"></div>
   </div>
 </div>
 
@@ -1028,10 +1044,12 @@ function diffMin(a,b){
 // ── MAPAS ──
 function initMaps(){
   const center=[-38.948,-68.075];
-  mapConfig=L.map('map-config',{center,zoom:12,zoomControl:false,attributionControl:false});
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{subdomains:'abcd',maxZoom:19}).addTo(mapConfig);
-  mapOp=L.map('map-op',{center,zoom:12});
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{attribution:'© OpenStreetMap © CARTO',subdomains:'abcd',maxZoom:19}).addTo(mapOp);
+  try{
+    mapConfig=L.map('map-config',{center,zoom:12,zoomControl:false,attributionControl:false});
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{subdomains:'abcd',maxZoom:19}).addTo(mapConfig);
+  }catch(e){ console.warn('mapConfig init error:',e); }
+  // mapOp eliminado — reemplazado por tracker visual
+  mapOp = { addLayer:function(){}, removeLayer:function(){}, fitBounds:function(){}, invalidateSize:function(){} };
 }
 function makeElabIco(c){return L.divIcon({html:`<div style="width:38px;height:38px;background:${c};border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;border:3px solid rgba(255,255,255,.85);box-shadow:0 0 18px ${c}aa;">🏭</div>`,className:'',iconSize:[38,38],iconAnchor:[19,19]});}
 function makeBaseIco(suc){return L.divIcon({html:`<div style="width:28px;height:28px;background:#2a2010;border-radius:50%;display:flex;align-items:center;justify-content:center;border:1.5px solid rgba(255,255,255,.25);color:rgba(255,255,255,.4);font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:700;">${suc}</div>`,className:'',iconSize:[28,28],iconAnchor:[14,14]});}
@@ -1039,16 +1057,7 @@ function makeSucIco(p){const c=p.status==='entregado'?'#22c55e':p.status==='en-c
 function makeConfIco(suc,color){return L.divIcon({html:`<div style="width:26px;height:26px;background:${color||'#3a3020'};border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid rgba(255,255,255,.7);color:#fff;font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:700;">${suc}</div>`,className:'',iconSize:[26,26],iconAnchor:[13,13]});}
 
 function buildBaseMarkers(){
-  Object.values(ELABS).forEach(e=>{
-    if(!e.lat) return;
-    L.marker([e.lat,e.lng],{icon:makeElabIco(e.color)}).addTo(mapOp)
-      .bindPopup(`<b style="color:${e.color}">Elaboradora ${e.id}</b><br><small>${e.dir}</small>`);
-    e.sucursales.forEach(s=>{
-      if(!s.lat) return;
-      L.marker([s.lat,s.lng],{icon:makeBaseIco(s.suc)}).addTo(mapOp)
-        .bindPopup(`<b>Suc. ${s.suc}</b><br><small>${s.dir}</small>`);
-    });
-  });
+  renderTracker(); // reemplaza el mapa
   const pts=[];
   Object.values(ELABS).forEach(e=>{if(e.lat)pts.push([e.lat,e.lng]);e.sucursales.forEach(s=>{if(s.lat)pts.push([s.lat,s.lng]);});});
   if(pts.length) mapOp.fitBounds(pts,{padding:[40,40]});
@@ -1065,12 +1074,16 @@ function makeTruckIcon(color, rotation){
   });
 }
 
-// Calcular distancias acumuladas en una polyline
+// Calcular distancias acumuladas en una polyline — en METROS reales
 function calcSegDists(coords){
   var dists=[0];
   for(var i=1;i<coords.length;i++){
-    var dy=coords[i][0]-coords[i-1][0], dx=coords[i][1]-coords[i-1][1];
-    dists.push(dists[i-1]+Math.sqrt(dy*dy+dx*dx));
+    var lat1=coords[i-1][0]*Math.PI/180, lat2=coords[i][0]*Math.PI/180;
+    var dlat=(coords[i][0]-coords[i-1][0])*Math.PI/180;
+    var dlng=(coords[i][1]-coords[i-1][1])*Math.PI/180;
+    var a=Math.sin(dlat/2)*Math.sin(dlat/2)+Math.cos(lat1)*Math.cos(lat2)*Math.sin(dlng/2)*Math.sin(dlng/2);
+    var dist=6371000*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a)); // metros
+    dists.push(dists[i-1]+dist);
   }
   return dists;
 }
@@ -1092,7 +1105,7 @@ function posEnCoords(coords, segDists, distTotal, progreso){
 }
 
 function stopTruckAnimation(truckId){
-  if(animFrames[truckId]){ clearInterval(animFrames[truckId]); delete animFrames[truckId]; }
+  if(animFrames[truckId]){ cancelAnimationFrame(animFrames[truckId]); delete animFrames[truckId]; }
   if(truckMarkers[truckId]){ try{truckMarkers[truckId].remove();}catch(e){} delete truckMarkers[truckId]; }
   // Limpiar todas las líneas de progreso de este camión
   Object.keys(progressLines).filter(function(k){ return k.indexOf(truckId)>=0; }).forEach(function(k){
@@ -1189,22 +1202,21 @@ function animateTruckOnRouteCoords(truckId, coords, color, etaMinutes, tsInicio)
     iconAnchor:[11,11]});
   truckMarkers[truckId]=L.marker(lcoords[0],{icon:camIcon,zIndexOffset:1000}).addTo(mapOp);
 
-  // 20 km/h considerando semáforos = 333.3 m/min
-  var VELOCIDAD_M_MIN = 333.3;
-  var DESCARGA_MIN = 3; // pausa simulando descarga al llegar
+  // 10 km/h (ciudad con semáforos y tráfico) = 166.7 m/min
+  var VELOCIDAD_M_MIN = 166.7;
 
   function calcProgreso(){
-    if(!tsInicio) return 0.02;
+    if(!tsInicio) return 0.0;
     var ahora = new Date();
     var partes = tsInicio.split(':');
     var salidaSeg = parseInt(partes[0])*3600 + parseInt(partes[1])*60 + (parseInt(partes[2])||0);
     var ahoraSeg  = ahora.getHours()*3600 + ahora.getMinutes()*60 + ahora.getSeconds();
     var transcSeg = ahoraSeg - salidaSeg;
-    if(transcSeg <= 0) return 0.02;
+    if(transcSeg <= 0) return 0.0;
     var transcMin = transcSeg / 60;
     var tiempoViajeMin = distTotal / VELOCIDAD_M_MIN;
-    if(transcMin >= tiempoViajeMin) return 0.99; // llegó — quieto en destino (descarga)
-    return Math.min(transcMin / tiempoViajeMin, 0.99);
+    // Detener al 90% — el camión queda afuera de la sucursal hasta confirmar entrega
+    return Math.min(transcMin / tiempoViajeMin, 0.90);
   }
 
   function actualizarPosicion(){
@@ -1214,11 +1226,20 @@ function animateTruckOnRouteCoords(truckId, coords, color, etaMinutes, tsInicio)
   }
 
   actualizarPosicion();
-  animFrames[truckId] = setInterval(actualizarPosicion, 30000);
+  // requestAnimationFrame para movimiento suave en tiempo real
+  function loop(){
+    if(!truckMarkers[truckId]){ return; }
+    actualizarPosicion();
+    animFrames[truckId] = requestAnimationFrame(loop);
+  }
+  animFrames[truckId] = requestAnimationFrame(loop);
 }
 
 
 function buildOpMapWithRoutes(eid){
+  renderTracker();
+  return; // mapa eliminado — tracker visual
+  if(false){
   var elab = ELABS[eid];
   Object.keys(leafM).forEach(function(k){
     if(k==='elab-'+eid || (paradas[k] && paradas[k].elabId===eid)){
@@ -1274,18 +1295,21 @@ function buildOpMapWithRoutes(eid){
         var p = psList[enCaminoIdx];
         animateTruckOnRouteCoords(tid, legCoords, t.color||'#f97316', p.etaMin||10, p.tsInicio||null);
       } else if(enCaminoIdx >= 0){
-        // Fallback sin OSRM: camión estático en la sucursal destino
+        // Fallback sin OSRM: interpolar posición en línea recta a 20 km/h
         var pEC = psList[enCaminoIdx];
-        if(pEC && pEC.lat){
-          if(truckMarkers[tid]){try{truckMarkers[tid].remove();}catch(e){}}
-          var camIcon=L.divIcon({className:'',
-            html:'<div style="font-size:22px;filter:drop-shadow(0 2px 6px rgba(0,0,0,.7));animation:pulsoTruck 1.2s infinite alternate">🚚</div>',
-            iconAnchor:[11,11]});
-          truckMarkers[tid]=L.marker([pEC.lat,pEC.lng],{icon:camIcon,zIndexOffset:1000}).addTo(mapOp);
+        var prevPt = enCaminoIdx === 0 ? elab : psList[enCaminoIdx-1];
+        if(pEC && pEC.lat && prevPt && prevPt.lat){
+          // Construir coords [origen, destino] para animateTruckOnRouteCoords
+          var coordsFallback = [
+            [prevPt.lng, prevPt.lat],
+            [pEC.lng,    pEC.lat   ]
+          ];
+          animateTruckOnRouteCoords(tid, coordsFallback, t.color||'#f97316', pEC.etaMin||10, pEC.tsInicio||null);
         }
       }
     });
   }); // fin forEach trucks
+  } // fin if(false)
 } // fin buildOpMapWithRoutes
 
 function updateConfigMap(){
@@ -1790,7 +1814,7 @@ function openModal(pid,action){
 function closeModal(){document.getElementById('modal').classList.remove('open');modalPid=null;modalAction=null;}
 function confirmModal(){
   if(!modalPid) return;
-  const p=paradas[modalPid],d=new Date(),now=String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+  const p=paradas[modalPid],d=new Date(),now=String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')+':'+String(d.getSeconds()).padStart(2,'0');
   if(modalAction==='inicio'){
     p.status='en-camino'; p.tsInicio=now;
     // Recalcular ETA de esta parada con coords reales al momento de salir
@@ -1813,7 +1837,18 @@ function confirmModal(){
     try{ leafM[modalPid].setStyle({fillColor:newCol}); }catch(e){}
   }
   gsSaveEstado(p);
-  // drawOpLines eliminado;renderSidebar();renderChofer();closeModal();
+  // Pintar marcador del mapa inmediatamente
+  if(leafM[modalPid]){
+    var col = p.status==='entregado' ? '#22c55e' : p.status==='en-camino' ? (trucks[p.truckId]?trucks[p.truckId].color:'#f97316') : '#6b7280';
+    try{ leafM[modalPid].setStyle({fillColor: col}); }catch(e){}
+  }
+  // Si se entregó, sacar el camión del mapa
+  if(p.status==='entregado' && p.truckId){
+    stopTruckAnimation(p.truckId);
+  }
+  // Redibujar mapa
+  if(p.elabId) try{ buildOpMapWithRoutes(p.elabId); }catch(e){}
+  renderSidebar();renderChofer();closeModal();
 }
 
 // ── RESET DIARIO ──
@@ -2116,11 +2151,15 @@ var reportElabSel = '006';
 function abrirReportModal(){
   var m = document.getElementById('report-modal');
   m.style.display = 'flex';
-  // Fecha por defecto = hoy
   document.getElementById('report-desde').value = hoyStr();
   document.getElementById('report-hasta').value = hoyStr();
-  document.getElementById('report-status').textContent = '';
+  document.getElementById('report-status').textContent = '⟳ Actualizando estado…';
   selReportElab(opElab || '006');
+  // Forzar actualización del estado antes de generar el PDF
+  try{ gsLoadEstado(); }catch(e){}
+  setTimeout(function(){
+    document.getElementById('report-status').textContent = '';
+  }, 1500);
 }
 
 function selReportElab(eid){
@@ -2155,7 +2194,8 @@ async function generarPDFDesdeSheets(){
 
     // También traer estados
     var estPromesas = [1,2,3].map(function(v){
-      return fetch(GS_URL+'?action=getEstado&desde='+desde+'&hasta='+hasta+'&vuelta='+v+'&elabId='+eid)
+      // Mandar fecha=desde para que getEstado filtre correctamente
+      return fetch(GS_URL+'?action=getEstado&fecha='+desde+'&desde='+desde+'&hasta='+hasta+'&vuelta='+v+'&elabId='+eid)
         .then(function(r){ return r.json(); })
         .then(function(d){ return {vuelta:v, estados: d.ok ? d.estados : {}}; });
     });
@@ -2170,14 +2210,15 @@ async function generarPDFDesdeSheets(){
       var trucksObj = {}, paradasObj = {};
       res.paradas.forEach(function(p){
         var pid = String(p.id);
-        var est = estados[pid] || {};
+        // Buscar estado por id o por suc (el SucId en Sheets puede variar)
+        var est = estados[pid] || estados[String(p.suc)] || {};
         paradasObj[pid] = {
           id: pid, suc: p.suc, dir: p.dir, orden: p.orden,
           truckId: p.truckId, truckName: p.truckName,
           etaMin: p.etaMin,
           status:   est.status   || 'pendiente',
-          tsInicio: est.tsInicio || '',
-          tsFin:    est.tsFin    || '',
+          tsInicio: sanitizeTs(est.tsInicio) || '',
+          tsFin:    sanitizeTs(est.tsFin)    || '',
         };
         if(!trucksObj[p.truckId]){
           trucksObj[p.truckId] = {
@@ -2345,7 +2386,7 @@ function generarPDF(){
   var secciones = [];
   (historialVueltas[opElab]||[]).forEach(function(h){
     secciones.push({vuelta:h.vuelta, trucksObj:h.trucks,
-      paradasObj:h.paradas.reduce(function(a,p){a[p.id]=p;return a;},{})});
+      paradasObj:h.paradas.reduce(function(a,p){a[String(p.id)]=p;a[p.id]=p;return a;},{})});
   });
   var psActivas = Object.values(paradas).filter(function(p){return p.elabId===opElab;});
   if(psActivas.length){
@@ -2448,7 +2489,7 @@ function generarPDFConDatos(secciones, elabId, fecha){
 
     Object.entries(sec.trucksObj).forEach(function(entry){
       var tid=entry[0],t=entry[1];
-      var tps=t.paradaIds.map(function(id){return sec.paradasObj[id];}).filter(Boolean);
+      var tps=t.paradaIds.map(function(id){return sec.paradasObj[String(id)]||sec.paradasObj[id];}).filter(Boolean);
       if(!tps.length) return;
       if(y2>170){doc2.addPage();drawBg();y2=14;}
       doc2.setFillColor(30,18,3);doc2.rect(M2-1,y2-6,W2-2*M2+2,9,'F');
@@ -2457,8 +2498,9 @@ function generarPDFConDatos(secciones, elabId, fecha){
       var rgb=hexToRgb(t.color||'#f97316');doc2.setTextColor(rgb[0],rgb[1],rgb[2]);
       var nCam=t.name.toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
       doc2.text(nCam,M2+1,y2);
+      var nCamW = doc2.getTextWidth(nCam); // calcular ancho con font 11 activo
       doc2.setFontSize(7);doc2.setFont('helvetica','normal');doc2.setTextColor(200,155,60);
-      doc2.text('VUELTA '+sec.vuelta,M2+1+doc2.getTextWidth(nCam)+4,y2);
+      doc2.text('VUELTA '+sec.vuelta, M2+1+nCamW+6, y2);
       var done=tps.filter(function(p){return p.status==='entregado';}).length;
       doc2.setFontSize(9);doc2.setTextColor(180,155,100);
       doc2.text(done+'/'+tps.length+' entregas',W2-M2,y2,{align:'right'});
@@ -2595,29 +2637,40 @@ function gsLoadEstado() {
 function gsLoadConfig() {
   if(gsLoadConfig._corriendo) return;
   gsLoadConfig._corriendo = true;
-  // Restaurar vuelta guardada (por si recargó estando en V2 o V3)
-  var savedVuelta = safeLS.getItem(STORAGE_KEY_VUELTA);
-  if(savedVuelta){
-    try{
-      var sv = JSON.parse(savedVuelta);
-      Object.keys(sv).forEach(function(eid){
-        vueltaElab[eid] = sv[eid];
-        // Actualizar botones de vuelta visualmente
-        setTimeout(function(e,v){ return function(){ setVueltaElab(e,v); }; }(eid, sv[eid]), 100);
-      });
-    }catch(e){}
-  }
   var fecha = hoyStr();
   var eids = Object.keys(vueltaElab);
-  var resultados = {}; // Guardar data de cada elab antes de procesar
+  var resultados = {};
 
-  // Primero fetch todo, luego procesar juntos
-  var fetches = eids.map(function(eid){
-    return fetch(GS_URL + '?action=getConfig&fecha=' + fecha + '&vuelta=' + vueltaElab[eid] + '&elabId=' + eid)
-      .then(function(r){ return r.json(); })
-      .then(function(data){ resultados[eid] = data; })
-      .catch(function(){ resultados[eid] = {ok:false}; });
+  // Autodetectar vuelta activa: buscar V1, V2, V3 en paralelo y usar la más alta con paradas
+  var vueltas = [1, 2, 3];
+  var allFetches = [];
+  eids.forEach(function(eid){
+    vueltas.forEach(function(v){
+      allFetches.push(
+        fetch(GS_URL + '?action=getConfig&fecha=' + fecha + '&vuelta=' + v + '&elabId=' + eid)
+          .then(function(r){ return r.json(); })
+          .then(function(data){ return {eid:eid, v:v, data:data}; })
+          .catch(function(){ return {eid:eid, v:v, data:{ok:false}}; })
+      );
+    });
   });
+
+  var fetches = [Promise.all(allFetches).then(function(todos){
+    // Para cada elab, elegir la vuelta más alta que tenga paradas confirmadas
+    // Si ninguna tiene paradas, usar la más alta que tenga aunque sea paradas sin confirmar
+    eids.forEach(function(eid){
+      var porVuelta = todos.filter(function(r){ return r.eid===eid; });
+      var conParadas = porVuelta.filter(function(r){ return r.data&&r.data.ok&&r.data.paradas&&r.data.paradas.length>0; });
+      if(conParadas.length > 0){
+        var mejor = conParadas[conParadas.length-1]; // la más alta con paradas
+        vueltaElab[eid] = mejor.v;
+        resultados[eid] = mejor.data;
+        setVueltaElab(eid, mejor.v);
+      } else {
+        resultados[eid] = {ok:false};
+      }
+    });
+  })];
 
   Promise.all(fetches).then(function(){
     // Procesar todas las elabs juntas, sin interferencias
@@ -2824,6 +2877,172 @@ async function init(){
     document.getElementById('btn-config').classList.add('active');
   }
 }
+
+// ── TRACKER VISUAL (reemplaza el mapa) ───────────────────────────────────────
+var trackerRAF = null;
+
+function calcProgresoTruck(p){
+  // Retorna 0.0 a 1.0 basado en tiempo real a 10 km/h
+  if(!p || p.status !== 'en-camino' || !p.tsInicio) return 0;
+  var VELOCIDAD_M_MIN = 166.7; // 10 km/h
+  var elab = ELABS[p.elabId];
+  if(!elab) return 0;
+  var truck = trucks[p.truckId];
+  if(!truck) return 0;
+  var ids = truck.paradaIds;
+  var idx = ids.indexOf(p.id||String(p.suc));
+  if(idx < 0) idx = ids.indexOf(String(p.suc));
+  var prevP = idx <= 0 ? elab : (paradas[ids[idx-1]] || elab);
+  var lat1 = prevP.lat||elab.lat, lng1 = prevP.lng||elab.lng;
+  var lat2 = p.lat, lng2 = p.lng;
+  if(!lat1||!lat2) return 0;
+  // Distancia en metros (Haversine)
+  var R = 6371000;
+  var dLat = (lat2-lat1)*Math.PI/180, dLng = (lng2-lng1)*Math.PI/180;
+  var a = Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)*Math.sin(dLng/2);
+  var distM = R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+  var tiempoViajeMin = distM / VELOCIDAD_M_MIN;
+  // Tiempo transcurrido
+  var ahora = new Date();
+  var partes = p.tsInicio.split(':');
+  var salidaSeg = parseInt(partes[0])*3600 + parseInt(partes[1])*60 + (parseInt(partes[2])||0);
+  var ahoraSeg  = ahora.getHours()*3600 + ahora.getMinutes()*60 + ahora.getSeconds();
+  var transcMin = (ahoraSeg - salidaSeg) / 60;
+  if(transcMin <= 0) return 0;
+  // Máximo 90% hasta confirmar entrega
+  return Math.min(transcMin / tiempoViajeMin, 0.90);
+}
+
+// ── TRACKER: render HTML (solo cuando cambia estructura) ─────────────────────
+function renderTracker(){
+  var container = document.getElementById('tracker-container');
+  if(!container) return;
+
+  var elabIds = Object.keys(ELABS).filter(function(eid){
+    return Object.values(paradas).some(function(p){ return p.elabId===eid; });
+  });
+
+  if(!elabIds.length){
+    container.innerHTML = '<div style="color:rgba(255,255,255,.2);font-family:JetBrains Mono,monospace;font-size:12px;padding:40px;text-align:center;">Sin rutas cargadas para hoy</div>';
+    trackerStop();
+    return;
+  }
+
+  var html = '';
+  elabIds.forEach(function(eid){
+    var elab = ELABS[eid];
+    var elabTrucks = Object.keys(trucks).filter(function(tid){ return trucks[tid]&&trucks[tid].elabId===eid; });
+    if(!elabTrucks.length) return;
+
+    html += '<div class="tracker-elab">';
+    html += '<div class="tracker-elab-title" style="color:'+elab.color+'">🏭 Elaboradora '+eid+'</div>';
+
+    elabTrucks.forEach(function(tid){
+      var t = trucks[tid];
+      var ids = t.paradaIds||[];
+      if(!ids.length) return;
+      var psList = ids.map(function(id){ return paradas[id]; }).filter(Boolean);
+      if(!psList.length) return;
+
+      html += '<div class="tracker-truck">';
+      html += '<div class="tracker-truck-name" style="color:'+t.color+';font-size:13px;font-weight:700;letter-spacing:.05em;">🚛 '+t.name+'</div>';
+      html += '<div class="tracker-route">';
+
+      html += '<div class="tracker-node">';
+      html += '<div class="tracker-node-circle elab-node" style="background:'+elab.color+'22;color:'+elab.color+';border-color:'+elab.color+'">🏭</div>';
+      html += '<div class="tracker-node-label" style="font-weight:700;color:'+elab.color+'">'+eid+'</div>';
+      html += '</div>';
+
+      psList.forEach(function(p, i){
+        var done = p.status==='entregado';
+        var active = p.status==='en-camino';
+        var pct = done ? 100 : 0; // progreso lo actualiza el loop
+
+        html += '<div class="tracker-seg" data-tid="'+tid+'" data-idx="'+i+'" data-pid="'+(p.id||p.suc)+'">';
+        html += '<div class="tracker-seg-fill" style="background:'+(done?'#22c55e':t.color)+';width:'+pct+'%"></div>';
+        if(active){
+          html += '<div class="tracker-truck-emoji" style="left:0%">🚚</div>';
+        }
+        html += '</div>';
+
+        var circleClass = done ? 'done' : active ? 'active' : 'pending';
+        var circleStyle = done ? '' : 'color:'+t.color+';border-color:'+(active?t.color:'rgba(255,255,255,.1)');
+        html += '<div class="tracker-node">';
+        html += '<div class="tracker-node-circle '+circleClass+'" style="'+circleStyle+'">'+p.suc+'</div>';
+        var etaLabel = '';
+        if(done && p.tsFin){
+          etaLabel = '<div class="tracker-node-eta" style="color:#22c55e66;">✓ '+p.tsFin.slice(0,5)+'</div>';
+        } else if(active && p.etaMin){
+          etaLabel = '<div class="tracker-node-eta" id="eta-'+tid+'-'+i+'">…</div>';
+        }
+        html += '<div class="tracker-node-label '+(done?'done':'')+'">'+p.suc+'</div>';
+        html += etaLabel;
+        html += '</div>';
+      });
+
+      html += '</div>'; // tracker-route
+      html += '</div>'; // tracker-truck
+    });
+    html += '</div>'; // tracker-elab
+  });
+
+  container.innerHTML = html;
+  trackerStart(); // arrancar/reiniciar el loop
+}
+
+// ── TRACKER: loop continuo de animación (independiente del render) ────────────
+function trackerStop(){
+  if(trackerRAF){ cancelAnimationFrame(trackerRAF); trackerRAF=null; }
+}
+
+function trackerStart(){
+  trackerStop();
+  function loop(){
+    var container = document.getElementById('tracker-container');
+    if(!container){ trackerRAF=null; return; }
+
+    Object.keys(trucks).forEach(function(tid){
+      var t = trucks[tid];
+      if(!t) return;
+      var ids = t.paradaIds||[];
+      var psList = ids.map(function(id){ return paradas[id]; }).filter(Boolean);
+      var enCaminoIdx = psList.findIndex(function(p){ return p.status==='en-camino'; });
+      if(enCaminoIdx < 0) return;
+
+      var p = psList[enCaminoIdx];
+      var progreso = calcProgresoTruck(p);
+      var pct = Math.round(progreso * 100);
+
+      // Actualizar barra y camión
+      var seg = container.querySelector('.tracker-seg[data-tid="'+tid+'"][data-idx="'+enCaminoIdx+'"]');
+      if(seg){
+        var fill = seg.querySelector('.tracker-seg-fill');
+        var emoji = seg.querySelector('.tracker-truck-emoji');
+        if(fill) fill.style.width = pct+'%';
+        if(emoji) emoji.style.left = pct+'%';
+      }
+
+      // Actualizar ETA
+      var etaEl = container.querySelector('#eta-'+tid+'-'+enCaminoIdx);
+      if(etaEl && p.etaMin){
+        var transcMin2 = 0;
+        if(p.tsInicio){
+          var pt=p.tsInicio.split(':');
+          var ahora2=new Date();
+          transcMin2=((ahora2.getHours()*3600+ahora2.getMinutes()*60+ahora2.getSeconds())-(parseInt(pt[0])*3600+parseInt(pt[1])*60+(parseInt(pt[2])||0)))/60;
+        }
+        var restante = Math.max(0, Math.round(p.etaMin - transcMin2));
+        etaEl.textContent = '~'+restante+'min';
+      }
+    });
+
+    trackerRAF = requestAnimationFrame(loop);
+  }
+  trackerRAF = requestAnimationFrame(loop);
+}
+
+var _origGsLoadEstado = gsLoadEstado;
+
 init();
 </script>
 </body>
