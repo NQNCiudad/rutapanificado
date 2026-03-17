@@ -1083,8 +1083,6 @@ function posEnCoords(coords, segDists, distTotal, progreso){
   return {pos:coords[coords.length-1], idx:coords.length-1};
 }
 
-async 
-
 function stopTruckAnimation(truckId){
   if(animFrames[truckId]){ clearInterval(animFrames[truckId]); delete animFrames[truckId]; }
   if(truckMarkers[truckId]){ try{truckMarkers[truckId].remove();}catch(e){} delete truckMarkers[truckId]; }
