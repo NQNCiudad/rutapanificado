@@ -635,8 +635,9 @@ body.light .admin-pin-input{background:rgba(255,255,255,.6);border-color:rgba(0,
 
 <script>
 const VELOCIDAD_KMH = 30;
-const STORAGE_KEY_HIST = 'panruta_historial';
-const STORAGE_KEY_DATE = 'panruta_lastdate';
+const STORAGE_KEY_HIST    = 'panruta_historial';
+const STORAGE_KEY_DATE    = 'panruta_lastdate';
+const STORAGE_KEY_VUELTA  = 'panruta_vuelta';
 
 const ELABS = {
   '006':{id:'006',nombre:'Elaboradora Bahía Blanca',dir:'Bahía Blanca 371, Neuquén',
@@ -890,8 +891,44 @@ function haversineKm(a,b){
   return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));
 }
 function etaMin(a,b){
+  // Fallback síncrono (haversine) — se usa mientras OSRM no respondió
   if(!a||!b||!a.lat||!b.lat) return null;
-  return Math.round(haversineKm(a,b)*1.35/VELOCIDAD_KMH*60);
+  return Math.round(haversineKm(a,b)*1.4/VELOCIDAD_KMH*60);
+}
+
+// Cache de duraciones OSRM {key: minutos}
+var osrmCache = {};
+
+async function osrmDuration(from, to){
+  if(!from||!to||!from.lat||!to.lat) return null;
+  var key = from.lat.toFixed(5)+','+from.lng.toFixed(5)+'->'+to.lat.toFixed(5)+','+to.lng.toFixed(5);
+  if(osrmCache[key] != null) return osrmCache[key];
+  try{
+    var url = 'https://router.project-osrm.org/route/v1/driving/'+
+      from.lng+','+from.lat+';'+to.lng+','+to.lat+
+      '?overview=false&geometries=geojson';
+    var r = await fetch(url);
+    var d = await r.json();
+    if(d.routes && d.routes[0]){
+      var mins = Math.ceil(d.routes[0].duration / 60);
+      osrmCache[key] = mins;
+      return mins;
+    }
+  }catch(e){}
+  return etaMin(from, to); // fallback
+}
+
+async function osrmRoute(from, to){
+  if(!from||!to||!from.lat||!to.lat) return null;
+  try{
+    var url = 'https://router.project-osrm.org/route/v1/driving/'+
+      from.lng+','+from.lat+';'+to.lng+','+to.lat+
+      '?overview=full&geometries=geojson';
+    var r = await fetch(url);
+    var d = await r.json();
+    if(d.routes && d.routes[0]) return d.routes[0];
+  }catch(e){}
+  return null;
 }
 function fmtEta(min){
   if(min===null||min===undefined) return '?';
@@ -967,21 +1004,45 @@ function buildOpMapWithRoutes(eid){
   if(routeG[eid]) routeG[eid].clearLayers();
   else routeG[eid]=L.layerGroup().addTo(mapOp);
   if(elab.lat){
-    leafM['elab-'+eid]=L.marker([elab.lat,elab.lng],{icon:makeElabIco(elab.color)}).addTo(mapOp)
-      .bindPopup('<b style="color:'+elab.color+'">Elaboradora '+eid+'</b><br><small>'+elab.dir+'</small>');
+    leafM['elab-'+eid]=L.marker([elab.lat,elab.lng],{icon:makeElabIco(elab.color)}).addTo(mapOp);
   }
+  // Dibujar marcadores de paradas
   Object.values(paradas).filter(function(p){return p.elabId===eid;}).forEach(function(p){
     if(!p.lat) return;
-    var m=L.marker([p.lat,p.lng],{icon:makeSucIco(p)}).addTo(mapOp);
-    m.bindPopup('<b style="color:'+p.truckColor+'">Suc. '+p.suc+'</b> — '+p.truckName+'<br><small>'+p.dir+'</small>');
-    m.on('click',function(){switchOpElab(p.elabId);selectCard(p.id);});
-    leafM[p.id]=m;
+    var col=p.status==='entregado'?'#22c55e':p.status==='en-camino'?p.truckColor||'#f97316':'#6b7280';
+    leafM[p.id]=L.circleMarker([p.lat,p.lng],{radius:10,fillColor:col,color:'#fff',weight:1.5,fillOpacity:1})
+      .bindTooltip('Suc.'+p.suc,{permanent:true,direction:'top',offset:[0,-8],className:'suc-label'})
+      .addTo(mapOp);
   });
-  drawOpLines();
-  var pts=[];
-  Object.values(ELABS).forEach(function(e){if(e.lat)pts.push([e.lat,e.lng]);});
-  Object.values(paradas).forEach(function(p){if(p.lat)pts.push([p.lat,p.lng]);});
-  if(pts.length) mapOp.fitBounds(pts,{padding:[40,40]});
+  // Dibujar rutas OSRM por camión
+  Object.entries(trucks).filter(function(kv){return kv[1].elabId===eid;}).forEach(function(kv){
+    var tid=kv[0],t=kv[1];
+    var ids=t.paradaIds||[];
+    if(!ids.length) return;
+    var puntos=[{lat:elab.lat,lng:elab.lng}].concat(
+      ids.map(function(id){return paradas[id];}).filter(Boolean)
+    );
+    // Dibujar segmentos con OSRM
+    for(var i=0;i<puntos.length-1;i++){
+      (function(from,to,color){
+        osrmRoute(from,to).then(function(route){
+          if(route && route.geometry){
+            var coords=route.geometry.coordinates.map(function(c){return [c[1],c[0]];});
+            L.polyline(coords,{color:color,weight:3.5,opacity:0.85,dashArray:null})
+              .addTo(routeG[eid]);
+          } else {
+            // Fallback línea recta
+            L.polyline([[from.lat,from.lng],[to.lat,to.lng]],
+              {color:color,weight:3,opacity:0.6,dashArray:'6,4'}).addTo(routeG[eid]);
+          }
+        });
+      })(puntos[i], puntos[i+1], t.color||'#f97316');
+    }
+    // Actualizar ETAs con OSRM en background
+    calcEtaChainOSRM(eid, tid).then(function(){
+      safeRenderConfig();
+    });
+  });
 }
 
 function centrarMapa(){
@@ -1092,6 +1153,7 @@ function switchConfigElab(id){
 }
 
 function calcEtaChain(elabId,truckId){
+  // Versión síncrona para render inicial (haversine)
   const elab=ELABS[elabId],ids=configTrucks[truckId]||[];
   const etas=[];let prev={lat:elab.lat,lng:elab.lng};
   ids.forEach(sid=>{
@@ -1100,6 +1162,22 @@ function calcEtaChain(elabId,truckId){
     prev=s||prev;
   });
   return etas;
+}
+
+async function calcEtaChainOSRM(elabId, truckId){
+  // Versión async con OSRM — actualiza ETAs con tiempos reales
+  const elab=ELABS[elabId], ids=configTrucks[truckId]||[];
+  if(!ids.length) return;
+  let prev={lat:elab.lat,lng:elab.lng};
+  for(var i=0;i<ids.length;i++){
+    const s=elab.sucursales.find(x=>String(x.id)===String(ids[i]));
+    if(!s) continue;
+    const mins = await osrmDuration(prev, s);
+    // Actualizar el ETA en la parada si ya está confirmada
+    const pid = String(ids[i]);
+    if(paradas[pid]) paradas[pid].etaMin = mins;
+    prev = s;
+  }
 }
 
 function safeRenderConfig(){ try{ renderConfig(); }catch(e){ console.warn("renderConfig err",e); } }
@@ -1224,6 +1302,7 @@ function confirmarElab(eid){
   document.getElementById('btn-chofer').disabled=false;
   checkConfirmBtn();
   actualizarBtnCerrarVuelta(eid);
+  localStorage.setItem(STORAGE_KEY_VUELTA, JSON.stringify(vueltaElab));
   // Habilitar botón de vuelta siguiente
   var vNext = document.getElementById('evbtn-'+eid+'-'+(vueltaElab[eid]+1));
   if(vNext){ vNext.removeAttribute('disabled'); vNext.style.opacity='1'; vNext.style.cursor='pointer'; }
@@ -1284,6 +1363,7 @@ function cerrarVueltaElab(eid){
   gsSaveHistorialVuelta(v, eid);
   // Avanzar vuelta
   vueltaElab[eid] = v + 1;
+  localStorage.setItem(STORAGE_KEY_VUELTA, JSON.stringify(vueltaElab));
   // Limpiar paradas y trucks de esta elab
   Object.keys(paradas).filter(function(k){ return paradas[k].elabId===eid; })
     .forEach(function(k){ delete paradas[k]; });
@@ -1551,6 +1631,7 @@ function ejecutarReset(){
   elabsConfirmadas['006']=false; elabsConfirmadas['225']=false;
   historialVueltas = {};
   vueltaElab = {'006':1,'225':1};
+  localStorage.removeItem(STORAGE_KEY_VUELTA);
   paradas={};trucks={};
   Object.values(ELABS).forEach(e=>{
     configUnassigned[e.id]=e.sucursales.map(s=>String(s.id));
@@ -2299,6 +2380,18 @@ function gsLoadEstado() {
 function gsLoadConfig() {
   if(gsLoadConfig._corriendo) return;
   gsLoadConfig._corriendo = true;
+  // Restaurar vuelta guardada (por si recargó estando en V2 o V3)
+  var savedVuelta = localStorage.getItem(STORAGE_KEY_VUELTA);
+  if(savedVuelta){
+    try{
+      var sv = JSON.parse(savedVuelta);
+      Object.keys(sv).forEach(function(eid){
+        vueltaElab[eid] = sv[eid];
+        // Actualizar botones de vuelta visualmente
+        setTimeout(function(e,v){ return function(){ setVueltaElab(e,v); }; }(eid, sv[eid]), 100);
+      });
+    }catch(e){}
+  }
   var fecha = hoyStr();
   var eids = Object.keys(vueltaElab);
   var resultados = {}; // Guardar data de cada elab antes de procesar
@@ -2386,6 +2479,11 @@ function gsLoadConfig() {
     }
     checkConfirmBtn();
     // Forzar re-render del tab activo para mostrar sucursales sin necesitar click
+    // Actualizar botones de vuelta para cada elab
+    Object.keys(vueltaElab).forEach(function(eid){
+      setVueltaElab(eid, vueltaElab[eid]);
+      actualizarBtnCerrarVuelta(eid);
+    });
     switchConfigElab(configElab);
     gsLoadConfig._corriendo = false;
     if(typeof gsLoadConfig._onDone === 'function'){ gsLoadConfig._onDone(); gsLoadConfig._onDone=null; }
