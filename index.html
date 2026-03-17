@@ -653,6 +653,14 @@ const STORAGE_KEY_HIST    = 'panruta_historial';
 const STORAGE_KEY_DATE    = 'panruta_lastdate';
 const STORAGE_KEY_VUELTA  = 'panruta_vuelta';
 
+// Wrapper seguro para localStorage — evita crash por Tracking Prevention
+var _lsMem = {};
+var safeLS = {
+  getItem: function(k){ try{ return safeLS.getItem(k); }catch(e){ return _lsMem[k]||null; } },
+  setItem: function(k,v){ try{ safeLS.setItem(k,v); }catch(e){} _lsMem[k]=v; },
+  removeItem: function(k){ try{ safeLS.removeItem(k); }catch(e){} delete _lsMem[k]; }
+};
+
 const ELABS = {
   '006':{id:'006',nombre:'Elaboradora Bahía Blanca',dir:'Bahía Blanca 371, Neuquén',
     address:'Bahia Blanca 371, Neuquen, Argentina',lat:-38.958854,lng:-68.050574,
@@ -1258,87 +1266,26 @@ function buildOpMapWithRoutes(eid){
     var enCaminoIdx = psList.findIndex(function(p){ return p && p.status==='en-camino'; });
 
     osrmRouteMulti(waypoints).then(function(legs){
-      if(!legs || !legs.length){
-        // Fallback: líneas rectas por segmento
-        for(var i=0;i<puntos.length-1;i++){
-          var p = psList[i];
-          var status = p ? p.status : 'pendiente';
-          var col2 = status==='entregado'?'#22c55e':t.color||'#f97316';
-          var op = status==='entregado'?0.7:status==='en-camino'?0.9:0.25;
-          var dash = status==='pendiente'?'7,6':null;
-          L.polyline([[puntos[i].lat,puntos[i].lng],[puntos[i+1].lat,puntos[i+1].lng]],
-            {color:col2,weight:3,opacity:op,dashArray:dash}).addTo(routeG[eid]);
+      // Sin líneas de ruta — solo mover el camión
+      var enCaminoIdx = psList.findIndex(function(p){ return p && p.status==='en-camino'; });
+      if(enCaminoIdx >= 0 && legs && legs.length > enCaminoIdx){
+        // Usar coords de OSRM para mover el camión
+        var legCoords = legs[enCaminoIdx];
+        var p = psList[enCaminoIdx];
+        animateTruckOnRouteCoords(tid, legCoords, t.color||'#f97316', p.etaMin||10, p.tsInicio||null);
+      } else if(enCaminoIdx >= 0){
+        // Fallback sin OSRM: camión estático en la sucursal destino
+        var pEC = psList[enCaminoIdx];
+        if(pEC && pEC.lat){
+          if(truckMarkers[tid]){try{truckMarkers[tid].remove();}catch(e){}}
+          var camIcon=L.divIcon({className:'',
+            html:'<div style="font-size:22px;filter:drop-shadow(0 2px 6px rgba(0,0,0,.7));animation:pulsoTruck 1.2s infinite alternate">🚚</div>',
+            iconAnchor:[11,11]});
+          truckMarkers[tid]=L.marker([pEC.lat,pEC.lng],{icon:camIcon,zIndexOffset:1000}).addTo(mapOp);
         }
-        // Camión estático en posición estimada si hay en-camino
-        if(enCaminoIdx>=0){
-          var pEC = psList[enCaminoIdx];
-          if(pEC&&pEC.lat){
-            var camIcon=L.divIcon({className:'',
-              html:'<div style="font-size:22px;filter:drop-shadow(0 2px 6px rgba(0,0,0,.7));animation:pulsoTruck 1.2s infinite alternate">🚚</div>',
-              iconAnchor:[11,11]});
-            truckMarkers[tid]=L.marker([pEC.lat,pEC.lng],{icon:camIcon,zIndexOffset:1000}).addTo(mapOp);
-          }
-        }
-        return;
       }
-
-      // Dibujar cada leg (segmento entre waypoints)
-      legs.forEach(function(leg, i){
-        var coords = leg.map(function(c){ return [c[1],c[0]]; });
-        var p = psList[i];
-        var status = p ? p.status : 'pendiente';
-
-        if(status === 'en-camino'){
-          // Delegamos a animateTruckOnRoute con las coords ya obtenidas
-          animateTruckOnRouteCoords(tid, coords, t.color||'#f97316', p.etaMin||10, p.tsInicio||null);
-        } else {
-          var lineColor = status==='entregado'?'#22c55e':t.color||'#f97316';
-          var opacity   = status==='entregado'?0.7:0.25;
-          var dashArray = status==='pendiente'?'7,6':null;
-          L.polyline(coords,{color:lineColor,weight:status==='entregado'?3.5:2.5,
-            opacity:opacity,dashArray:dashArray,lineJoin:'round',lineCap:'round'}).addTo(routeG[eid]);
-        }
-      });
     });
 
-    calcEtaChainOSRM(eid, tid).then(function(){ safeRenderConfig(); });
-  });
-}
-
-function centrarMapa(){
-  var pts=[];
-  Object.values(ELABS).forEach(function(e){if(e.lat)pts.push([e.lat,e.lng]);});
-  Object.values(paradas).forEach(function(p){if(p.lat)pts.push([p.lat,p.lng]);});
-  if(pts.length) mapOp.fitBounds(pts,{padding:[40,40]});
-  else mapOp.setView([-38.948,-68.075],12);
-  setTimeout(function(){mapOp.invalidateSize();},100);
-}
-function drawOpLines(){
-  Object.values(ELABS).forEach(e=>{
-    if(!routeG[e.id]||!e.lat) return;
-    routeG[e.id].clearLayers();
-    Object.values(trucks).filter(t=>t.elabId===e.id).forEach(truck=>{
-      const ids=truck.paradaIds;
-      ids.forEach((pid,idx)=>{
-        const p=paradas[pid]; if(!p||!p.lat) return;
-        const prevP=idx===0?null:paradas[ids[idx-1]];
-        const prevLat=prevP&&prevP.lat?prevP.lat:e.lat;
-        const prevLng=prevP&&prevP.lng?prevP.lng:e.lng;
-        const done=p.status==='entregado';
-        const active=p.status==='en-camino';
-        if(active){
-          L.polyline([[prevLat,prevLng],[p.lat,p.lng]],{color:truck.color,weight:1.5,opacity:.18,dashArray:'3,12'}).addTo(routeG[e.id]);
-          const midLat=(prevLat+p.lat)/2, midLng=(prevLng+p.lng)/2;
-          const animLine=L.polyline([[prevLat,prevLng],[midLat,midLng]],{color:truck.color,weight:3,opacity:.95,dashArray:'10,6'}).addTo(routeG[e.id]);
-          animLine.on('add',function(){ const el=this.getElement(); if(el) el.classList.add('animated-route'); });
-          try{ const el=animLine.getElement(); if(el) el.classList.add('animated-route'); }catch(ex){}
-        } else {
-          L.polyline([[prevLat,prevLng],[p.lat,p.lng]],{color:done?'#22c55e':truck.color,weight:done?2:1.5,opacity:done?.8:.2,dashArray:done?null:'3,12'}).addTo(routeG[e.id]);
-        }
-      });
-    });
-  });
-}
 
 function updateConfigMap(){
   Object.values(confM).forEach(m=>{try{m.remove();}catch(e){}});
@@ -1564,7 +1511,7 @@ function confirmarElab(eid){
   document.getElementById('btn-chofer').disabled=false;
   checkConfirmBtn();
   actualizarBtnCerrarVuelta(eid);
-  localStorage.setItem(STORAGE_KEY_VUELTA, JSON.stringify(vueltaElab));
+  safeLS.setItem(STORAGE_KEY_VUELTA, JSON.stringify(vueltaElab));
   // Habilitar botón de vuelta siguiente
   var vNext = document.getElementById('evbtn-'+eid+'-'+(vueltaElab[eid]+1));
   if(vNext){ vNext.removeAttribute('disabled'); vNext.style.opacity='1'; vNext.style.cursor='pointer'; }
@@ -1625,7 +1572,7 @@ function cerrarVueltaElab(eid){
   gsSaveHistorialVuelta(v, eid);
   // Avanzar vuelta
   vueltaElab[eid] = v + 1;
-  localStorage.setItem(STORAGE_KEY_VUELTA, JSON.stringify(vueltaElab));
+  safeLS.setItem(STORAGE_KEY_VUELTA, JSON.stringify(vueltaElab));
   // Limpiar paradas y trucks de esta elab
   Object.keys(paradas).filter(function(k){ return paradas[k].elabId===eid; })
     .forEach(function(k){ delete paradas[k]; });
@@ -1871,18 +1818,18 @@ function confirmModal(){
 // ── RESET DIARIO ──
 function hoyStr(){return new Date().toISOString().slice(0,10);}
 function checkResetDiario(){
-  const last=localStorage.getItem(STORAGE_KEY_DATE),hoy=hoyStr();
+  const last=safeLS.getItem(STORAGE_KEY_DATE),hoy=hoyStr();
   if(last && last!==hoy){
     // Nuevo día detectado — reiniciar automáticamente sin preguntar
     ejecutarReset();
     toast('Nuevo día — rutas reiniciadas automáticamente','🌅');
   } else {
-    localStorage.setItem(STORAGE_KEY_DATE,hoy);
+    safeLS.setItem(STORAGE_KEY_DATE,hoy);
   }
 }
-function closeResetModal(){document.getElementById('reset-modal').classList.remove('open');localStorage.setItem(STORAGE_KEY_DATE,hoyStr());}
+function closeResetModal(){document.getElementById('reset-modal').classList.remove('open');safeLS.setItem(STORAGE_KEY_DATE,hoyStr());}
 function ejecutarReset(){
-  var fechaAyer = localStorage.getItem(STORAGE_KEY_DATE) || '';
+  var fechaAyer = safeLS.getItem(STORAGE_KEY_DATE) || '';
 
   // 1. Guardar en Historial cualquier parada activa en memoria
   Object.keys(vueltaElab).forEach(function(eid){ gsSaveHistorialVuelta(vueltaElab[eid],eid); });
@@ -1898,7 +1845,7 @@ function ejecutarReset(){
   elabsConfirmadas['006']=false; elabsConfirmadas['225']=false;
   historialVueltas = {};
   vueltaElab = {'006':1,'225':1};
-  localStorage.removeItem(STORAGE_KEY_VUELTA);
+  safeLS.removeItem(STORAGE_KEY_VUELTA);
   paradas={};trucks={};
   Object.values(ELABS).forEach(e=>{
     configUnassigned[e.id]=e.sucursales.map(s=>String(s.id));
@@ -1911,7 +1858,7 @@ function ejecutarReset(){
   document.getElementById('btn-chofer').disabled=false;
   // Resetear botones de vuelta a V1
   ['006','225'].forEach(function(eid){ setVueltaElab(eid,1); actualizarBtnCerrarVuelta(eid); });
-  localStorage.setItem(STORAGE_KEY_DATE,hoyStr());
+  safeLS.setItem(STORAGE_KEY_DATE,hoyStr());
   closeResetModal();
   buildBaseMarkers();
   goConfig();renderConfig();
@@ -1920,10 +1867,10 @@ function ejecutarReset(){
 
 // ── HISTORIAL ──
 function guardarHistorialDia(){
-  const hist=JSON.parse(localStorage.getItem(STORAGE_KEY_HIST)||'[]');
-  const fecha=localStorage.getItem(STORAGE_KEY_DATE)||hoyStr();
+  const hist=JSON.parse(safeLS.getItem(STORAGE_KEY_HIST)||'[]');
+  const fecha=safeLS.getItem(STORAGE_KEY_DATE)||hoyStr();
   hist.push({fecha,paradas:Object.values(paradas).map(p=>({elabId:p.elabId,suc:p.suc,dir:p.dir,truckName:p.truckName,orden:p.orden,status:p.status,tsInicio:p.tsInicio,tsFin:p.tsFin,etaMin:p.etaMin}))});
-  localStorage.setItem(STORAGE_KEY_HIST,JSON.stringify(hist.slice(-14)));
+  safeLS.setItem(STORAGE_KEY_HIST,JSON.stringify(hist.slice(-14)));
 }
 function sumarMin2(ts,min){return sumarMin(ts,min);}
 
@@ -1970,7 +1917,7 @@ async function descargarExcelDesdeSheets(){
 }
 
 function exportarExcelSemanal(){
-  const hist=JSON.parse(localStorage.getItem(STORAGE_KEY_HIST)||'[]');
+  const hist=JSON.parse(safeLS.getItem(STORAGE_KEY_HIST)||'[]');
   if(!hist.length){toast('No hay historial en esta sesión. Usá el botón Excel para descargar desde Sheets.','⚠️');return;}
   generarExcelConDatos(hist, hoyStr());
 }
@@ -2648,7 +2595,7 @@ function gsLoadConfig() {
   if(gsLoadConfig._corriendo) return;
   gsLoadConfig._corriendo = true;
   // Restaurar vuelta guardada (por si recargó estando en V2 o V3)
-  var savedVuelta = localStorage.getItem(STORAGE_KEY_VUELTA);
+  var savedVuelta = safeLS.getItem(STORAGE_KEY_VUELTA);
   if(savedVuelta){
     try{
       var sv = JSON.parse(savedVuelta);
@@ -2773,10 +2720,10 @@ function applyTheme(t){
   document.body.classList.toggle('light', t==='light');
   var btn=document.getElementById('theme-btn');
   if(btn) btn.textContent = t==='light' ? '🌙' : '☀️';
-  try{localStorage.setItem('panruta_theme',t);}catch(e){}
+  try{safeLS.setItem('panruta_theme',t);}catch(e){}
 }
 function initTheme(){
-  var s=null; try{s=localStorage.getItem('panruta_theme');}catch(e){}
+  var s=null; try{s=safeLS.getItem('panruta_theme');}catch(e){}
   if(s){applyTheme(s);return;}
   applyTheme(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');
 }
