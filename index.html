@@ -2772,44 +2772,57 @@ function geoStep(n, pct, txt){
 }
 
 async function init(){
-  initTheme();
-  document.querySelectorAll('.page').forEach(function(p){ p.style.display='none'; });
-  showPage('geo');
-  geoStep(1, 10, 'Iniciando mapas…');
-  initMaps();
-  await new Promise(function(r){ setTimeout(r, 400); });
+  try {
+    initTheme();
+    document.querySelectorAll('.page').forEach(function(p){ p.style.display='none'; });
+    showPage('geo');
+    geoStep(1, 10, 'Iniciando mapas…');
+    try { initMaps(); } catch(e){ console.warn('initMaps error:',e); }
+    await new Promise(function(r){ setTimeout(r, 400); });
 
-  geoStep(2, 30, 'Ubicando sucursales…');
-  await geocodeAll();
-  buildBaseMarkers();
-  geoStep(2, 55, 'Sucursales listas');
-  await new Promise(function(r){ setTimeout(r, 300); });
+    geoStep(2, 30, 'Ubicando sucursales…');
+    try {
+      await Promise.race([
+        geocodeAll(),
+        new Promise(function(r){ setTimeout(r, 5000); }) // timeout 5s
+      ]);
+    } catch(e){ console.warn('geocodeAll error:',e); }
+    try { buildBaseMarkers(); } catch(e){ console.warn('buildBaseMarkers error:',e); }
+    geoStep(2, 55, 'Sucursales listas');
+    await new Promise(function(r){ setTimeout(r, 300); });
 
-  geoStep(3, 65, 'Restaurando rutas del día…');
-  document.getElementById('btn-config').disabled=false;
-  document.getElementById('btn-op').disabled=false;
-  initConfig();
-  checkResetDiario();
-  gsCargarConfigAdmin();
-  await new Promise(function(r){ setTimeout(r, 300); });
-  await new Promise(function(resolve){
-    gsLoadConfig._onDone = resolve;
-    gsLoadConfig();
-    setTimeout(resolve, 6000); // fallback 6s
-  });
+    geoStep(3, 65, 'Restaurando rutas del día…');
+    document.getElementById('btn-config').disabled=false;
+    document.getElementById('btn-op').disabled=false;
+    try { initConfig(); } catch(e){ console.warn('initConfig error:',e); }
+    try { checkResetDiario(); } catch(e){ console.warn('checkResetDiario error:',e); }
+    try { gsCargarConfigAdmin(); } catch(e){ console.warn('gsCargarConfigAdmin error:',e); }
+    await new Promise(function(r){ setTimeout(r, 300); });
+    await new Promise(function(resolve){
+      gsLoadConfig._onDone = resolve;
+      try { gsLoadConfig(); } catch(e){ console.warn('gsLoadConfig error:',e); resolve(); }
+      setTimeout(resolve, 8000); // fallback 8s
+    });
 
-  // Asegurar botones habilitados llegando a este punto
-  document.getElementById('btn-op').disabled = false;
-  document.getElementById('btn-chofer').disabled = false;
-  geoStep(4, 88, 'Sincronizando estado…');
-  await new Promise(function(r){ setTimeout(r, 500); });
+    document.getElementById('btn-op').disabled = false;
+    document.getElementById('btn-chofer').disabled = false;
+    geoStep(4, 88, 'Sincronizando estado…');
+    await new Promise(function(r){ setTimeout(r, 500); });
 
-  geoStep(4, 100, 'Listo!');
-  await new Promise(function(r){ setTimeout(r, 600); });
+    geoStep(4, 100, 'Listo!');
+    await new Promise(function(r){ setTimeout(r, 600); });
 
-  showPage('config');
-  document.getElementById('btn-config').classList.add('active');
-  setInterval(function(){if(Object.keys(paradas).length>0)gsLoadEstado();},30000);
+    showPage('config');
+    document.getElementById('btn-config').classList.add('active');
+    setInterval(function(){if(Object.keys(paradas).length>0)gsLoadEstado();},30000);
+  } catch(fatalErr) {
+    console.error('init fatal:', fatalErr);
+    // Forzar apertura aunque haya error
+    geoStep(4, 100, 'Listo!');
+    await new Promise(function(r){ setTimeout(r, 400); });
+    showPage('config');
+    document.getElementById('btn-config').classList.add('active');
+  }
 }
 init();
 </script>
