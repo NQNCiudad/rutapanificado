@@ -1083,82 +1083,15 @@ function posEnCoords(coords, segDists, distTotal, progreso){
   return {pos:coords[coords.length-1], idx:coords.length-1};
 }
 
-async function animateTruckOnRoute(truckId, fromCoord, toCoord, color, etaMinutes, tsInicio){
-  stopTruckAnimation(truckId);
-
-  // Obtener ruta OSRM
-  var route = await osrmRoute(fromCoord, toCoord);
-  var coords;
-  if(route && route.geometry && route.geometry.coordinates.length > 2){
-    coords = route.geometry.coordinates.map(function(c){ return [c[1],c[0]]; });
-  } else {
-    // Sin OSRM — línea punteada estática solamente
-    var baseKey='base-'+truckId;
-    if(progressLines[baseKey]){try{progressLines[baseKey].remove();}catch(e){}}
-    progressLines[baseKey]=L.polyline(
-      [[fromCoord.lat,fromCoord.lng],[toCoord.lat,toCoord.lng]],
-      {color:color,weight:3,opacity:0.45,dashArray:'8,6'}
-    ).addTo(mapOp);
-    return;
-  }
-
-  var segDists = calcSegDists(coords);
-  var distTotal = segDists[segDists.length-1];
-
-  // Línea pendiente (gris punteada) — toda la ruta
-  var baseKey='base-'+truckId;
-  if(progressLines[baseKey]){try{progressLines[baseKey].remove();}catch(e){}}
-  progressLines[baseKey]=L.polyline(coords,{color:'#444',weight:4,opacity:0.5,dashArray:'6,5'}).addTo(mapOp);
-
-  // Línea recorrida (color vivo)
-  var progKey='prog-'+truckId;
-  if(progressLines[progKey]){try{progressLines[progKey].remove();}catch(e){}}
-  progressLines[progKey]=L.polyline([coords[0]],{color:color,weight:5,opacity:0.9,lineCap:'round',lineJoin:'round'}).addTo(mapOp);
-
-  // Marcador camión
-  if(truckMarkers[truckId]){try{truckMarkers[truckId].remove();}catch(e){}}
-  var camIcon=L.divIcon({className:'',
-    html:'<div style="font-size:22px;filter:drop-shadow(0 2px 6px rgba(0,0,0,.7));animation:pulsoTruck 1.2s infinite alternate">🚚</div>',
-    iconAnchor:[11,11]});
-  truckMarkers[truckId]=L.marker(coords[0],{icon:camIcon,zIndexOffset:1000}).addTo(mapOp);
-
-  // Función de actualización por tiempo
-  function actualizarPosicion(){
-    if(!truckMarkers[truckId]) return; // fue eliminado
-    var eta = etaMinutes || 10;
-    var progreso = 0;
-    if(tsInicio){
-      // Calcular minutos transcurridos desde tsInicio
-      var ahora = new Date();
-      var partes = tsInicio.split(':');
-      var salidaMin = parseInt(partes[0])*60+parseInt(partes[1]);
-      var ahoraMin = ahora.getHours()*60+ahora.getMinutes();
-      var transcurridos = ahoraMin - salidaMin;
-      progreso = Math.min(transcurridos/eta, 0.95); // máx 95% hasta confirmar
-    }
-    if(progreso<=0) progreso=0.02;
-
-    var res = posEnCoords(coords, segDists, distTotal, progreso);
-    var coordsHecho = coords.slice(0, res.idx).concat([res.pos]);
-
-    // Actualizar polyline recorrida
-    if(progressLines[progKey]) progressLines[progKey].setLatLngs(coordsHecho);
-    // Actualizar polyline pendiente
-    if(progressLines[baseKey]) progressLines[baseKey].setLatLngs([res.pos].concat(coords.slice(res.idx)));
-    // Mover camión
-    if(truckMarkers[truckId]) truckMarkers[truckId].setLatLng(res.pos);
-  }
-
-  // Actualizar inmediatamente y luego cada 30s
-  actualizarPosicion();
-  animFrames[truckId] = setInterval(actualizarPosicion, 30000);
-}
+async 
 
 function stopTruckAnimation(truckId){
-  if(animFrames[truckId]){ clearInterval(animFrames[truckId]); cancelAnimationFrame(animFrames[truckId]); delete animFrames[truckId]; }
+  if(animFrames[truckId]){ clearInterval(animFrames[truckId]); delete animFrames[truckId]; }
   if(truckMarkers[truckId]){ try{truckMarkers[truckId].remove();}catch(e){} delete truckMarkers[truckId]; }
-  ['base-'+truckId,'prog-'+truckId].forEach(function(k){
-    if(progressLines[k]){ try{progressLines[k].remove();}catch(e){} delete progressLines[k]; }
+  // Limpiar todas las líneas de progreso de este camión
+  Object.keys(progressLines).filter(function(k){ return k.indexOf(truckId)>=0; }).forEach(function(k){
+    try{progressLines[k].remove();}catch(e){}
+    delete progressLines[k];
   });
 }
 
@@ -1264,14 +1197,23 @@ function animateTruckOnRouteCoords(truckId, coords, color, etaMinutes, tsInicio)
     if(!truckMarkers[truckId]) return;
     var eta = etaMinutes || 10;
     var progreso = 0;
-    if(tsInicio){
+    if(tsInicio && eta > 0){
       var ahora = new Date();
       var partes = tsInicio.split(':');
       var salidaMin = parseInt(partes[0])*60+parseInt(partes[1]);
       var ahoraMin = ahora.getHours()*60+ahora.getMinutes();
-      progreso = Math.min((ahoraMin-salidaMin)/eta, 0.95);
+      var transcurridos = ahoraMin - salidaMin;
+      // Solo avanzar si hay tiempo transcurrido positivo y razonable
+      if(transcurridos > 0 && transcurridos < 240){
+        progreso = Math.min(transcurridos / eta, 0.93);
+      } else if(transcurridos <= 0){
+        progreso = 0.02; // justo salió
+      } else {
+        progreso = 0.93; // lleva mucho tiempo — cerca del destino
+      }
+    } else {
+      progreso = 0.02; // sin tsInicio — mostrar al inicio de la ruta
     }
-    if(progreso<=0) progreso=0.02;
 
     var res = posEnCoords(lcoords, segDists, distTotal, progreso);
     var coordsHecho = lcoords.slice(0, res.idx).concat([res.pos]);
@@ -1294,8 +1236,16 @@ function buildOpMapWithRoutes(eid){
   });
   Object.keys(trucks).filter(function(tid){ return trucks[tid]&&trucks[tid].elabId===eid; })
     .forEach(stopTruckAnimation);
-  if(routeG[eid]) routeG[eid].clearLayers();
+  // Limpiar TODAS las capas previas de esta elab
+  if(routeG[eid]){ routeG[eid].clearLayers(); }
   else routeG[eid] = L.layerGroup().addTo(mapOp);
+  // Limpiar también progressLines huérfanas de esta elab
+  Object.keys(progressLines).forEach(function(k){
+    var tid = k.replace('base-','').replace('prog-','');
+    if(trucks[tid] && trucks[tid].elabId===eid){
+      try{progressLines[k].remove();}catch(e){} delete progressLines[k];
+    }
+  });
 
   if(elab.lat){
     leafM['elab-'+eid] = L.marker([elab.lat,elab.lng],{icon:makeElabIco(elab.color)}).addTo(mapOp);
