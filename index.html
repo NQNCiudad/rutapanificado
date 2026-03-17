@@ -648,7 +648,7 @@ body.light .admin-pin-input{background:rgba(255,255,255,.6);border-color:rgba(0,
 <div class="toast" id="toast"><span id="ti">✅</span><span id="tm">—</span></div>
 
 <script>
-const VELOCIDAD_KMH = 30;
+const VELOCIDAD_KMH = 18;
 const STORAGE_KEY_HIST    = 'panruta_historial';
 const STORAGE_KEY_DATE    = 'panruta_lastdate';
 const STORAGE_KEY_VUELTA  = 'panruta_vuelta';
@@ -893,7 +893,7 @@ function recalcEtasParadas(){
         if(suc&&suc.lat){ p.lat=suc.lat; p.lng=suc.lng; }
       }
       if(p.lat && prev.lat){
-        p.etaMin = Math.round(haversineKm(prev, p) * 1.35 / VELOCIDAD_KMH * 60);
+        p.etaMin = Math.round(haversineKm(prev, p) * 1.5 / VELOCIDAD_KMH * 60);
       }
       if(p.lat) prev = {lat:p.lat, lng:p.lng};
     });
@@ -1161,7 +1161,7 @@ async function osrmRouteMulti(waypointsStr){
   return null;
 }
 
-// Versión de animateTruckOnRoute que recibe coords ya obtenidas (no hace fetch)
+// Animación del camión: sin líneas, velocidad 20 km/h, pausa 3 min descarga
 function animateTruckOnRouteCoords(truckId, coords, color, etaMinutes, tsInicio){
   stopTruckAnimation(truckId);
   if(!coords || coords.length < 2) return;
@@ -1172,58 +1172,43 @@ function animateTruckOnRouteCoords(truckId, coords, color, etaMinutes, tsInicio)
   });
 
   var segDists = calcSegDists(lcoords);
-  var distTotal = segDists[segDists.length-1];
+  var distTotal = segDists[segDists.length-1]; // metros
 
-  // Línea pendiente (gris punteada)
-  var baseKey='base-'+truckId;
-  if(progressLines[baseKey]){try{progressLines[baseKey].remove();}catch(e){}}
-  progressLines[baseKey]=L.polyline(lcoords,{color:'#444',weight:4,opacity:0.5,dashArray:'6,5'}).addTo(mapOp);
-
-  // Línea recorrida (color vivo)
-  var progKey='prog-'+truckId;
-  if(progressLines[progKey]){try{progressLines[progKey].remove();}catch(e){}}
-  progressLines[progKey]=L.polyline([lcoords[0]],{color:color,weight:5,opacity:0.9,lineCap:'round',lineJoin:'round'}).addTo(mapOp);
-
-  // Marcador camión
+  // Sin líneas de ruta — solo ícono del camión moviéndose
   if(truckMarkers[truckId]){try{truckMarkers[truckId].remove();}catch(e){}}
   var camIcon=L.divIcon({className:'',
     html:'<div style="font-size:22px;filter:drop-shadow(0 2px 6px rgba(0,0,0,.7));animation:pulsoTruck 1.2s infinite alternate">🚚</div>',
     iconAnchor:[11,11]});
   truckMarkers[truckId]=L.marker(lcoords[0],{icon:camIcon,zIndexOffset:1000}).addTo(mapOp);
 
+  // 20 km/h considerando semáforos = 333.3 m/min
+  var VELOCIDAD_M_MIN = 333.3;
+  var DESCARGA_MIN = 3; // pausa simulando descarga al llegar
+
+  function calcProgreso(){
+    if(!tsInicio) return 0.02;
+    var ahora = new Date();
+    var partes = tsInicio.split(':');
+    var salidaSeg = parseInt(partes[0])*3600 + parseInt(partes[1])*60 + (parseInt(partes[2])||0);
+    var ahoraSeg  = ahora.getHours()*3600 + ahora.getMinutes()*60 + ahora.getSeconds();
+    var transcSeg = ahoraSeg - salidaSeg;
+    if(transcSeg <= 0) return 0.02;
+    var transcMin = transcSeg / 60;
+    var tiempoViajeMin = distTotal / VELOCIDAD_M_MIN;
+    if(transcMin >= tiempoViajeMin) return 0.99; // llegó — quieto en destino (descarga)
+    return Math.min(transcMin / tiempoViajeMin, 0.99);
+  }
+
   function actualizarPosicion(){
     if(!truckMarkers[truckId]) return;
-    var eta = etaMinutes || 10;
-    var progreso = 0;
-    if(tsInicio && eta > 0){
-      var ahora = new Date();
-      var partes = tsInicio.split(':');
-      var salidaMin = parseInt(partes[0])*60+parseInt(partes[1]);
-      var ahoraMin = ahora.getHours()*60+ahora.getMinutes();
-      var transcurridos = ahoraMin - salidaMin;
-      // Solo avanzar si hay tiempo transcurrido positivo y razonable
-      if(transcurridos > 0 && transcurridos < 240){
-        progreso = Math.min(transcurridos / eta, 0.93);
-      } else if(transcurridos <= 0){
-        progreso = 0.02; // justo salió
-      } else {
-        progreso = 0.93; // lleva mucho tiempo — cerca del destino
-      }
-    } else {
-      progreso = 0.02; // sin tsInicio — mostrar al inicio de la ruta
-    }
-
-    var res = posEnCoords(lcoords, segDists, distTotal, progreso);
-    var coordsHecho = lcoords.slice(0, res.idx).concat([res.pos]);
-
-    if(progressLines[progKey]) progressLines[progKey].setLatLngs(coordsHecho);
-    if(progressLines[baseKey]) progressLines[baseKey].setLatLngs([res.pos].concat(lcoords.slice(res.idx)));
-    if(truckMarkers[truckId]) truckMarkers[truckId].setLatLng(res.pos);
+    var res = posEnCoords(lcoords, segDists, distTotal, calcProgreso());
+    truckMarkers[truckId].setLatLng(res.pos);
   }
 
   actualizarPosicion();
   animFrames[truckId] = setInterval(actualizarPosicion, 30000);
 }
+
 
 function buildOpMapWithRoutes(eid){
   var elab = ELABS[eid];
@@ -1867,7 +1852,7 @@ function confirmModal(){
       const elab=ELABS[p.elabId];
       const prevP = idx===0 ? (elab||null) : paradas[ids[idx-1]];
       if(prevP&&prevP.lat&&p.lat){
-        p.etaMin = Math.round(haversineKm(prevP,p)*1.35/VELOCIDAD_KMH*60);
+        p.etaMin = Math.round(haversineKm(prevP,p)*1.5/VELOCIDAD_KMH*60);
       }
     }
     toast('🚚 Suc. '+p.suc+' — Salió a las '+now,'🚚');
