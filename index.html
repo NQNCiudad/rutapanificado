@@ -7,6 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/leaflet-moving-marker@1.0.6/MovingMarker.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
 <style>
@@ -33,6 +34,10 @@ header::after{content:'';position:absolute;inset:0;background:linear-gradient(90
 .page.active{display:flex;}
 #page-geo{align-items:center;justify-content:center;flex-direction:column;gap:16px;}
 .geo-logo-box{font-size:48px;margin-bottom:4px;animation:geobounce 1.2s ease-in-out infinite;}
+@keyframes pulsoTruck{
+  from{transform:scale(1);}
+  to{transform:scale(1.25);}
+}
 @keyframes geobounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
 .geo-title{font-family:'Bebas Neue',cursive;font-size:42px;letter-spacing:6px;color:var(--gold);text-shadow:0 0 30px rgba(240,180,41,.4);}
 .geo-sub{font-size:11px;color:rgba(255,255,255,.3);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:28px;}
@@ -399,6 +404,15 @@ body.light .admin-section-title{color:rgba(0,0,0,.4);}
 body.light .admin-elab-name{color:#1a1208;}
 body.light .admin-suc-dir{color:rgba(0,0,0,.5);}
 body.light .admin-pin-input{background:rgba(255,255,255,.6);border-color:rgba(0,0,0,.2);color:#1a1208;}
+
+.truck-icon-wrap{
+  display:flex;align-items:center;justify-content:center;
+  width:32px;height:32px;border-radius:50%;
+  border:2px solid rgba(255,255,255,.7);
+  font-size:16px;
+  box-shadow:0 2px 8px rgba(0,0,0,.5);
+  transition:transform .1s;
+}
 </style>
 </head>
 <body>
@@ -898,36 +912,74 @@ function etaMin(a,b){
 
 // Cache de duraciones OSRM {key: minutos}
 var osrmCache = {};
+var truckMarkers = {};   // marcadores animados de camiones {truckId: marker}
+var progressLines = {};  // líneas de progreso {truckId: polyline}
+var animFrames = {};     // requestAnimationFrame handles
 
 async function osrmDuration(from, to){
   if(!from||!to||!from.lat||!to.lat) return null;
   var key = from.lat.toFixed(5)+','+from.lng.toFixed(5)+'->'+to.lat.toFixed(5)+','+to.lng.toFixed(5);
   if(osrmCache[key] != null) return osrmCache[key];
-  try{
-    var url = 'https://router.project-osrm.org/route/v1/driving/'+
-      from.lng+','+from.lat+';'+to.lng+','+to.lat+
-      '?overview=false&geometries=geojson';
-    var r = await fetch(url);
-    var d = await r.json();
-    if(d.routes && d.routes[0]){
-      var mins = Math.ceil(d.routes[0].duration / 60);
-      osrmCache[key] = mins;
-      return mins;
-    }
-  }catch(e){}
-  return etaMin(from, to); // fallback
+  // Reusar la ruta completa si ya la tenemos cacheada
+  var route = await osrmRoute(from, to);
+  if(route){
+    var mins = Math.ceil(route.duration / 60);
+    osrmCache[key] = mins;
+    return mins;
+  }
+  return etaMin(from, to); // fallback haversine
 }
+
+// Servidores OSRM a intentar en orden
+var OSRM_SERVERS = [
+  'https://router.project-osrm.org',
+  'https://routing.openstreetmap.de/routed-car',
+];
+var osrmServerIdx = 0;
+var osrmAllFailed = false;    // si ya sabemos que todos fallan, no reintentar
+var osrmLastTry   = 0;        // timestamp del último intento fallido
 
 async function osrmRoute(from, to){
   if(!from||!to||!from.lat||!to.lat) return null;
+  if(osrmAllFailed && Date.now()-osrmLastTry < 3*60*1000) return null;
+
+  var coords = from.lng+','+from.lat+';'+to.lng+','+to.lat;
+
+  // 1. Intentar directo primero (más rápido si no está bloqueado)
+  for(var attempt=0; attempt<OSRM_SERVERS.length; attempt++){
+    var idx = (osrmServerIdx + attempt) % OSRM_SERVERS.length;
+    try{
+      var url = OSRM_SERVERS[idx]+'/route/v1/driving/'+coords+
+        '?overview=full&geometries=geojson';
+      var ctrl = new AbortController();
+      var tid2 = setTimeout(function(){ ctrl.abort(); }, 3500);
+      var r = await fetch(url, {signal: ctrl.signal});
+      clearTimeout(tid2);
+      var d = await r.json();
+      if(d.routes && d.routes[0]){
+        osrmServerIdx = idx;
+        osrmAllFailed = false;
+        return d.routes[0];
+      }
+    }catch(e){}
+  }
+
+  // 2. Fallback: proxy via Apps Script (sale desde servidores de Google)
   try{
-    var url = 'https://router.project-osrm.org/route/v1/driving/'+
-      from.lng+','+from.lat+';'+to.lng+','+to.lat+
-      '?overview=full&geometries=geojson';
-    var r = await fetch(url);
-    var d = await r.json();
-    if(d.routes && d.routes[0]) return d.routes[0];
-  }catch(e){}
+    var proxyUrl = GS_URL + '?action=getRoute&coords=' + encodeURIComponent(coords);
+    var ctrl2 = new AbortController();
+    var tid3 = setTimeout(function(){ ctrl2.abort(); }, 8000);
+    var r2 = await fetch(proxyUrl, {signal: ctrl2.signal});
+    clearTimeout(tid3);
+    var d2 = await r2.json();
+    if(d2.ok && d2.geometry){
+      osrmAllFailed = false;
+      return {geometry: d2.geometry, duration: d2.duration, distance: d2.distance};
+    }
+  }catch(e){ console.warn('proxy OSRM error:', e.message); }
+
+  osrmAllFailed = true;
+  osrmLastTry = Date.now();
   return null;
 }
 function fmtEta(min){
@@ -994,54 +1046,329 @@ function buildBaseMarkers(){
   if(pts.length) mapOp.fitBounds(pts,{padding:[40,40]});
 }
 
-function buildOpMapWithRoutes(eid){
-  var elab=ELABS[eid];
-  Object.keys(leafM).forEach(function(k){
-    if(k==='elab-'+eid||(paradas[k]&&paradas[k].elabId===eid)){
-      try{leafM[k].remove();}catch(err){} delete leafM[k];
-    }
+// ── ANIMACIÓN DE CAMIÓN EN RUTA ─────────────────────────────────────────────
+
+function makeTruckIcon(color, rotation){
+  return L.divIcon({
+    className: '',
+    iconSize: [32,32],
+    iconAnchor: [16,16],
+    html: '<div class="truck-icon-wrap" style="background:'+color+';transform:rotate('+rotation+'deg)">🚚</div>'
   });
-  if(routeG[eid]) routeG[eid].clearLayers();
-  else routeG[eid]=L.layerGroup().addTo(mapOp);
-  if(elab.lat){
-    leafM['elab-'+eid]=L.marker([elab.lat,elab.lng],{icon:makeElabIco(elab.color)}).addTo(mapOp);
+}
+
+// Calcular distancias acumuladas en una polyline
+function calcSegDists(coords){
+  var dists=[0];
+  for(var i=1;i<coords.length;i++){
+    var dy=coords[i][0]-coords[i-1][0], dx=coords[i][1]-coords[i-1][1];
+    dists.push(dists[i-1]+Math.sqrt(dy*dy+dx*dx));
   }
-  // Dibujar marcadores de paradas
-  Object.values(paradas).filter(function(p){return p.elabId===eid;}).forEach(function(p){
-    if(!p.lat) return;
-    var col=p.status==='entregado'?'#22c55e':p.status==='en-camino'?p.truckColor||'#f97316':'#6b7280';
-    leafM[p.id]=L.circleMarker([p.lat,p.lng],{radius:10,fillColor:col,color:'#fff',weight:1.5,fillOpacity:1})
-      .bindTooltip('Suc.'+p.suc,{permanent:true,direction:'top',offset:[0,-8],className:'suc-label'})
-      .addTo(mapOp);
-  });
-  // Dibujar rutas OSRM por camión
-  Object.entries(trucks).filter(function(kv){return kv[1].elabId===eid;}).forEach(function(kv){
-    var tid=kv[0],t=kv[1];
-    var ids=t.paradaIds||[];
-    if(!ids.length) return;
-    var puntos=[{lat:elab.lat,lng:elab.lng}].concat(
-      ids.map(function(id){return paradas[id];}).filter(Boolean)
-    );
-    // Dibujar segmentos con OSRM
-    for(var i=0;i<puntos.length-1;i++){
-      (function(from,to,color){
-        osrmRoute(from,to).then(function(route){
-          if(route && route.geometry){
-            var coords=route.geometry.coordinates.map(function(c){return [c[1],c[0]];});
-            L.polyline(coords,{color:color,weight:3.5,opacity:0.85,dashArray:null})
-              .addTo(routeG[eid]);
-          } else {
-            // Fallback línea recta
-            L.polyline([[from.lat,from.lng],[to.lat,to.lng]],
-              {color:color,weight:3,opacity:0.6,dashArray:'6,4'}).addTo(routeG[eid]);
-          }
-        });
-      })(puntos[i], puntos[i+1], t.color||'#f97316');
+  return dists;
+}
+
+// Obtener posición interpolada dado km recorrido
+function posEnCoords(coords, segDists, distTotal, progreso){
+  var target = progreso * distTotal;
+  for(var i=1;i<segDists.length;i++){
+    if(segDists[i]>=target){
+      var t=(target-segDists[i-1])/(segDists[i]-segDists[i-1]);
+      return {
+        pos:[coords[i-1][0]+(coords[i][0]-coords[i-1][0])*t,
+             coords[i-1][1]+(coords[i][1]-coords[i-1][1])*t],
+        idx: i
+      };
     }
-    // Actualizar ETAs con OSRM en background
-    calcEtaChainOSRM(eid, tid).then(function(){
-      safeRenderConfig();
+  }
+  return {pos:coords[coords.length-1], idx:coords.length-1};
+}
+
+async function animateTruckOnRoute(truckId, fromCoord, toCoord, color, etaMinutes, tsInicio){
+  stopTruckAnimation(truckId);
+
+  // Obtener ruta OSRM
+  var route = await osrmRoute(fromCoord, toCoord);
+  var coords;
+  if(route && route.geometry && route.geometry.coordinates.length > 2){
+    coords = route.geometry.coordinates.map(function(c){ return [c[1],c[0]]; });
+  } else {
+    // Sin OSRM — línea punteada estática solamente
+    var baseKey='base-'+truckId;
+    if(progressLines[baseKey]){try{progressLines[baseKey].remove();}catch(e){}}
+    progressLines[baseKey]=L.polyline(
+      [[fromCoord.lat,fromCoord.lng],[toCoord.lat,toCoord.lng]],
+      {color:color,weight:3,opacity:0.45,dashArray:'8,6'}
+    ).addTo(mapOp);
+    return;
+  }
+
+  var segDists = calcSegDists(coords);
+  var distTotal = segDists[segDists.length-1];
+
+  // Línea pendiente (gris punteada) — toda la ruta
+  var baseKey='base-'+truckId;
+  if(progressLines[baseKey]){try{progressLines[baseKey].remove();}catch(e){}}
+  progressLines[baseKey]=L.polyline(coords,{color:'#444',weight:4,opacity:0.5,dashArray:'6,5'}).addTo(mapOp);
+
+  // Línea recorrida (color vivo)
+  var progKey='prog-'+truckId;
+  if(progressLines[progKey]){try{progressLines[progKey].remove();}catch(e){}}
+  progressLines[progKey]=L.polyline([coords[0]],{color:color,weight:5,opacity:0.9,lineCap:'round',lineJoin:'round'}).addTo(mapOp);
+
+  // Marcador camión
+  if(truckMarkers[truckId]){try{truckMarkers[truckId].remove();}catch(e){}}
+  var camIcon=L.divIcon({className:'',
+    html:'<div style="font-size:22px;filter:drop-shadow(0 2px 6px rgba(0,0,0,.7));animation:pulsoTruck 1.2s infinite alternate">🚚</div>',
+    iconAnchor:[11,11]});
+  truckMarkers[truckId]=L.marker(coords[0],{icon:camIcon,zIndexOffset:1000}).addTo(mapOp);
+
+  // Función de actualización por tiempo
+  function actualizarPosicion(){
+    if(!truckMarkers[truckId]) return; // fue eliminado
+    var eta = etaMinutes || 10;
+    var progreso = 0;
+    if(tsInicio){
+      // Calcular minutos transcurridos desde tsInicio
+      var ahora = new Date();
+      var partes = tsInicio.split(':');
+      var salidaMin = parseInt(partes[0])*60+parseInt(partes[1]);
+      var ahoraMin = ahora.getHours()*60+ahora.getMinutes();
+      var transcurridos = ahoraMin - salidaMin;
+      progreso = Math.min(transcurridos/eta, 0.95); // máx 95% hasta confirmar
+    }
+    if(progreso<=0) progreso=0.02;
+
+    var res = posEnCoords(coords, segDists, distTotal, progreso);
+    var coordsHecho = coords.slice(0, res.idx).concat([res.pos]);
+
+    // Actualizar polyline recorrida
+    if(progressLines[progKey]) progressLines[progKey].setLatLngs(coordsHecho);
+    // Actualizar polyline pendiente
+    if(progressLines[baseKey]) progressLines[baseKey].setLatLngs([res.pos].concat(coords.slice(res.idx)));
+    // Mover camión
+    if(truckMarkers[truckId]) truckMarkers[truckId].setLatLng(res.pos);
+  }
+
+  // Actualizar inmediatamente y luego cada 30s
+  actualizarPosicion();
+  animFrames[truckId] = setInterval(actualizarPosicion, 30000);
+}
+
+function stopTruckAnimation(truckId){
+  if(animFrames[truckId]){ clearInterval(animFrames[truckId]); cancelAnimationFrame(animFrames[truckId]); delete animFrames[truckId]; }
+  if(truckMarkers[truckId]){ try{truckMarkers[truckId].remove();}catch(e){} delete truckMarkers[truckId]; }
+  ['base-'+truckId,'prog-'+truckId].forEach(function(k){
+    if(progressLines[k]){ try{progressLines[k].remove();}catch(e){} delete progressLines[k]; }
+  });
+}
+
+function stopAllTruckAnimations(){
+  Object.keys(truckMarkers).forEach(stopTruckAnimation);
+}
+
+function calcBearing(from, to){
+  var dy = to[0]-from[0], dx = to[1]-from[1];
+  var angle = Math.atan2(dx, dy) * 180 / Math.PI;
+  return (angle + 360) % 360;
+}
+
+// ── OSRM multi-waypoint (una sola request para todo el camión) ──────────────
+async function osrmRouteMulti(waypointsStr){
+  // waypointsStr = "lng1,lat1;lng2,lat2;lng3,lat3..."
+  if(!waypointsStr) return null;
+  if(osrmAllFailed && Date.now()-osrmLastTry < 3*60*1000) return null;
+
+  // 1. Directo
+  for(var attempt=0; attempt<OSRM_SERVERS.length; attempt++){
+    var idx = (osrmServerIdx + attempt) % OSRM_SERVERS.length;
+    try{
+      var url = OSRM_SERVERS[idx]+'/route/v1/driving/'+waypointsStr+
+        '?overview=false&geometries=geojson&steps=true';
+      var ctrl = new AbortController();
+      var tid2 = setTimeout(function(){ ctrl.abort(); }, 5000);
+      var r = await fetch(url, {signal: ctrl.signal});
+      clearTimeout(tid2);
+      if(!r.ok) continue;
+      var d = await r.json();
+      if(d.routes && d.routes[0] && d.routes[0].legs){
+        osrmServerIdx = idx; osrmAllFailed = false;
+        // Extraer coordenadas de cada leg
+        return d.routes[0].legs.map(function(leg){
+          var coords = [];
+          leg.steps.forEach(function(step){
+            if(step.geometry && step.geometry.coordinates){
+              step.geometry.coordinates.forEach(function(co){ coords.push(co); });
+            }
+          });
+          return coords;
+        });
+      }
+    }catch(e){}
+  }
+
+  // 2. Proxy Apps Script
+  try{
+    var proxyUrl = GS_URL + '?action=getRoute&coords=' + encodeURIComponent(waypointsStr);
+    var ctrl2 = new AbortController();
+    var tid3 = setTimeout(function(){ ctrl2.abort(); }, 12000); // 12s para el proxy
+    var r2 = await fetch(proxyUrl, {signal: ctrl2.signal});
+    clearTimeout(tid3);
+    var d2 = await r2.json();
+    if(d2.ok && d2.legs){
+      osrmAllFailed = false;
+      return d2.legs;
+    }
+    // Si el proxy devuelve geometry simple (ruta de 2 puntos)
+    if(d2.ok && d2.geometry && d2.geometry.coordinates){
+      osrmAllFailed = false;
+      return [d2.geometry.coordinates];
+    }
+  }catch(e){ console.warn('proxy OSRM multi error:', e.message); }
+
+  osrmAllFailed = true;
+  osrmLastTry = Date.now();
+  return null;
+}
+
+// Versión de animateTruckOnRoute que recibe coords ya obtenidas (no hace fetch)
+function animateTruckOnRouteCoords(truckId, coords, color, etaMinutes, tsInicio){
+  stopTruckAnimation(truckId);
+  if(!coords || coords.length < 2) return;
+
+  // coords es array de [lng, lat] de OSRM — convertir a [lat, lng] para Leaflet
+  var lcoords = coords.map(function(c){
+    return Array.isArray(c) ? [c[1], c[0]] : [c.lat||c[1], c.lng||c[0]];
+  });
+
+  var segDists = calcSegDists(lcoords);
+  var distTotal = segDists[segDists.length-1];
+
+  // Línea pendiente (gris punteada)
+  var baseKey='base-'+truckId;
+  if(progressLines[baseKey]){try{progressLines[baseKey].remove();}catch(e){}}
+  progressLines[baseKey]=L.polyline(lcoords,{color:'#444',weight:4,opacity:0.5,dashArray:'6,5'}).addTo(mapOp);
+
+  // Línea recorrida (color vivo)
+  var progKey='prog-'+truckId;
+  if(progressLines[progKey]){try{progressLines[progKey].remove();}catch(e){}}
+  progressLines[progKey]=L.polyline([lcoords[0]],{color:color,weight:5,opacity:0.9,lineCap:'round',lineJoin:'round'}).addTo(mapOp);
+
+  // Marcador camión
+  if(truckMarkers[truckId]){try{truckMarkers[truckId].remove();}catch(e){}}
+  var camIcon=L.divIcon({className:'',
+    html:'<div style="font-size:22px;filter:drop-shadow(0 2px 6px rgba(0,0,0,.7));animation:pulsoTruck 1.2s infinite alternate">🚚</div>',
+    iconAnchor:[11,11]});
+  truckMarkers[truckId]=L.marker(lcoords[0],{icon:camIcon,zIndexOffset:1000}).addTo(mapOp);
+
+  function actualizarPosicion(){
+    if(!truckMarkers[truckId]) return;
+    var eta = etaMinutes || 10;
+    var progreso = 0;
+    if(tsInicio){
+      var ahora = new Date();
+      var partes = tsInicio.split(':');
+      var salidaMin = parseInt(partes[0])*60+parseInt(partes[1]);
+      var ahoraMin = ahora.getHours()*60+ahora.getMinutes();
+      progreso = Math.min((ahoraMin-salidaMin)/eta, 0.95);
+    }
+    if(progreso<=0) progreso=0.02;
+
+    var res = posEnCoords(lcoords, segDists, distTotal, progreso);
+    var coordsHecho = lcoords.slice(0, res.idx).concat([res.pos]);
+
+    if(progressLines[progKey]) progressLines[progKey].setLatLngs(coordsHecho);
+    if(progressLines[baseKey]) progressLines[baseKey].setLatLngs([res.pos].concat(lcoords.slice(res.idx)));
+    if(truckMarkers[truckId]) truckMarkers[truckId].setLatLng(res.pos);
+  }
+
+  actualizarPosicion();
+  animFrames[truckId] = setInterval(actualizarPosicion, 30000);
+}
+
+function buildOpMapWithRoutes(eid){
+  var elab = ELABS[eid];
+  Object.keys(leafM).forEach(function(k){
+    if(k==='elab-'+eid || (paradas[k] && paradas[k].elabId===eid)){
+      try{leafM[k].remove();}catch(e){} delete leafM[k];
+    }
+  });
+  Object.keys(trucks).filter(function(tid){ return trucks[tid]&&trucks[tid].elabId===eid; })
+    .forEach(stopTruckAnimation);
+  if(routeG[eid]) routeG[eid].clearLayers();
+  else routeG[eid] = L.layerGroup().addTo(mapOp);
+
+  if(elab.lat){
+    leafM['elab-'+eid] = L.marker([elab.lat,elab.lng],{icon:makeElabIco(elab.color)}).addTo(mapOp);
+  }
+
+  Object.entries(trucks).filter(function(kv){return kv[1].elabId===eid;}).forEach(function(kv){
+    var tid=kv[0], t=kv[1];
+    var ids = t.paradaIds||[];
+    if(!ids.length) return;
+    var psList = ids.map(function(id){return paradas[id];}).filter(Boolean);
+    var puntos = [{lat:elab.lat,lng:elab.lng}].concat(psList);
+
+    // Marcadores de sucursales
+    psList.forEach(function(p){
+      if(!p||!p.lat) return;
+      var col = p.status==='entregado'?'#22c55e':p.status==='en-camino'?t.color||'#f97316':'#6b7280';
+      if(leafM[p.id]) try{leafM[p.id].remove();}catch(e){}
+      leafM[p.id] = L.circleMarker([p.lat,p.lng],{
+        radius:11, fillColor:col, color:'#fff', weight:2, fillOpacity:1
+      }).bindTooltip('Suc.'+p.suc,{permanent:false,direction:'top',offset:[0,-10]})
+        .addTo(mapOp);
     });
+
+    // ── UNA SOLA REQUEST con todos los waypoints del camión ──
+    // Evita el rate limit 429 de OSRM
+    var waypoints = puntos.map(function(p){ return p.lng+','+p.lat; }).join(';');
+    var enCaminoIdx = psList.findIndex(function(p){ return p && p.status==='en-camino'; });
+
+    osrmRouteMulti(waypoints).then(function(legs){
+      if(!legs || !legs.length){
+        // Fallback: líneas rectas por segmento
+        for(var i=0;i<puntos.length-1;i++){
+          var p = psList[i];
+          var status = p ? p.status : 'pendiente';
+          var col2 = status==='entregado'?'#22c55e':t.color||'#f97316';
+          var op = status==='entregado'?0.7:status==='en-camino'?0.9:0.25;
+          var dash = status==='pendiente'?'7,6':null;
+          L.polyline([[puntos[i].lat,puntos[i].lng],[puntos[i+1].lat,puntos[i+1].lng]],
+            {color:col2,weight:3,opacity:op,dashArray:dash}).addTo(routeG[eid]);
+        }
+        // Camión estático en posición estimada si hay en-camino
+        if(enCaminoIdx>=0){
+          var pEC = psList[enCaminoIdx];
+          if(pEC&&pEC.lat){
+            var camIcon=L.divIcon({className:'',
+              html:'<div style="font-size:22px;filter:drop-shadow(0 2px 6px rgba(0,0,0,.7));animation:pulsoTruck 1.2s infinite alternate">🚚</div>',
+              iconAnchor:[11,11]});
+            truckMarkers[tid]=L.marker([pEC.lat,pEC.lng],{icon:camIcon,zIndexOffset:1000}).addTo(mapOp);
+          }
+        }
+        return;
+      }
+
+      // Dibujar cada leg (segmento entre waypoints)
+      legs.forEach(function(leg, i){
+        var coords = leg.map(function(c){ return [c[1],c[0]]; });
+        var p = psList[i];
+        var status = p ? p.status : 'pendiente';
+
+        if(status === 'en-camino'){
+          // Delegamos a animateTruckOnRoute con las coords ya obtenidas
+          animateTruckOnRouteCoords(tid, coords, t.color||'#f97316', p.etaMin||10, p.tsInicio||null);
+        } else {
+          var lineColor = status==='entregado'?'#22c55e':t.color||'#f97316';
+          var opacity   = status==='entregado'?0.7:0.25;
+          var dashArray = status==='pendiente'?'7,6':null;
+          L.polyline(coords,{color:lineColor,weight:status==='entregado'?3.5:2.5,
+            opacity:opacity,dashArray:dashArray,lineJoin:'round',lineCap:'round'}).addTo(routeG[eid]);
+        }
+      });
+    });
+
+    calcEtaChainOSRM(eid, tid).then(function(){ safeRenderConfig(); });
   });
 }
 
@@ -1105,6 +1432,8 @@ function updateConfigMap(){
 
 // ── NAVEGACIÓN ──
 function showPage(id){
+  // Parar animaciones si salimos del operador
+  if(id !== 'op') stopAllTruckAnimations();
   // Manejar page-config (está en wrapper fixed)
   var wrapper = document.getElementById('page-config-wrapper');
   if(id === 'config'){
@@ -1596,7 +1925,12 @@ function confirmModal(){
     toast('🚚 Suc. '+p.suc+' — Salió a las '+now,'🚚');
   }
   else{p.status='entregado';p.tsFin=now;toast('✅ Suc. '+p.suc+' — Entregado a las '+now,'✅');}
-  if(leafM[modalPid]) leafM[modalPid].setIcon(makeSucIco(p));
+  // Actualizar color del marcador (circleMarker usa setStyle, no setIcon)
+  if(leafM[modalPid]){
+    var newCol = p.status==='entregado'?'#22c55e':p.status==='en-camino'?
+      (trucks[p.truckId]?trucks[p.truckId].color:'#f97316'):'#6b7280';
+    try{ leafM[modalPid].setStyle({fillColor:newCol}); }catch(e){}
+  }
   gsSaveEstado(p);
   drawOpLines();renderSidebar();renderChofer();closeModal();
 }
