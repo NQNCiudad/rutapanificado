@@ -1650,7 +1650,7 @@ function gsSaveHistorialVuelta(vuelta, eid){
       fecha:fecha, elabId:p.elabId, truckId:p.truckId, truckName:p.truckName,
       sucId:p.id, suc:p.suc, dir:p.dir, orden:p.orden,
       tsInicio:p.tsInicio||'', tsFin:p.tsFin||'',
-      demora:0, etaMin:p.etaMin||0
+      demora:0, etaMin:p.etaMin||0, vuelta:vuelta
     };
   });
   gsPost({action:'saveHistorial', entregas:entregas});
@@ -1928,7 +1928,9 @@ async function descargarExcelDesdeSheets(){
   var status = document.getElementById('excel-status');
   status.textContent = 'Consultando Google Sheets…';
   try {
-    var r = await fetch(GS_URL+'?action=getHistorial&desde='+desde+'&hasta='+hasta);
+    var elabExcel = document.getElementById('excel-elab-sel') ? document.getElementById('excel-elab-sel').value : '';
+    var elabParam = elabExcel ? '&elabId='+elabExcel : '';
+    var r = await fetch(GS_URL+'?action=getHistorial&desde='+desde+'&hasta='+hasta+elabParam);
     var data = await r.json();
     if(!data.ok || !data.entregas || !data.entregas.length){
       status.textContent = 'No hay registros para ese período.';
@@ -2188,62 +2190,83 @@ async function generarPDFDesdeSheets(){
   status.textContent = 'Consultando Google Sheets…';
 
   try {
-    // Traer todas las vueltas (1, 2, 3) para esa fecha y elab
-    var promesas = [1,2,3].map(function(v){
-      return fetch(GS_URL+'?action=getConfig&desde='+desde+'&hasta='+hasta+'&vuelta='+v+'&elabId='+eid)
-        .then(function(r){ return r.json(); })
-        .then(function(d){ return {vuelta:v, paradas: d.ok ? d.paradas : []}; });
-    });
-    var resultados = await Promise.all(promesas);
-
-    // También traer estados
-    var estPromesas = [1,2,3].map(function(v){
-      // Mandar fecha=desde para que getEstado filtre correctamente
-      return fetch(GS_URL+'?action=getEstado&fecha='+desde+'&desde='+desde+'&hasta='+hasta+'&vuelta='+v+'&elabId='+eid)
-        .then(function(r){ return r.json(); })
-        .then(function(d){ return {vuelta:v, estados: d.ok ? d.estados : {}}; });
-    });
-    var estResultados = await Promise.all(estPromesas);
-
-    // Combinar paradas con estados
+    var esHoy = (desde === hoyStr() && hasta === hoyStr());
     var secciones = [];
-    resultados.forEach(function(res, i){
-      if(!res.paradas || !res.paradas.length) return;
-      var estados = estResultados[i].estados || {};
-      // Reconstruir estructura de trucks y paradas
-      var trucksObj = {}, paradasObj = {};
-      res.paradas.forEach(function(p){
-        var pid = String(p.id);
-        // Buscar estado por id o por suc (el SucId en Sheets puede variar)
-        var est = estados[pid] || estados[String(p.suc)] || {};
-        paradasObj[pid] = {
-          id: pid, suc: p.suc, dir: p.dir, orden: p.orden,
-          truckId: p.truckId, truckName: p.truckName,
-          etaMin: p.etaMin,
-          status:   est.status   || 'pendiente',
-          tsInicio: sanitizeTs(est.tsInicio) || '',
-          tsFin:    sanitizeTs(est.tsFin)    || '',
-        };
-        if(!trucksObj[p.truckId]){
-          trucksObj[p.truckId] = {
-            name: p.truckName, elabId: eid,
-            color: p.truckId.indexOf('T1')>-1 ?
-              (eid==='006'?'#f97316':'#818cf8') :
-              (eid==='006'?'#fbbf24':'#a78bfa'),
-            paradaIds: []
+
+    if(esHoy){
+      // Día actual: leer de Config + Estado
+      var promesas = [1,2,3].map(function(v){
+        return fetch(GS_URL+'?action=getConfig&desde='+desde+'&hasta='+hasta+'&vuelta='+v+'&elabId='+eid)
+          .then(function(r){ return r.json(); })
+          .then(function(d){ return {vuelta:v, paradas: d.ok ? d.paradas : []}; });
+      });
+      var resultados = await Promise.all(promesas);
+      var estPromesas = [1,2,3].map(function(v){
+        return fetch(GS_URL+'?action=getEstado&fecha='+desde+'&desde='+desde+'&hasta='+hasta+'&vuelta='+v+'&elabId='+eid)
+          .then(function(r){ return r.json(); })
+          .then(function(d){ return {vuelta:v, estados: d.ok ? d.estados : {}}; });
+      });
+      var estResultados = await Promise.all(estPromesas);
+
+      resultados.forEach(function(res, i){
+        if(!res.paradas || !res.paradas.length) return;
+        var estados = estResultados[i].estados || {};
+        var trucksObj = {}, paradasObj = {};
+        res.paradas.forEach(function(p){
+          var pid = String(p.id);
+          var est = estados[pid] || estados[String(p.suc)] || {};
+          paradasObj[pid] = {
+            id:pid, suc:p.suc, dir:p.dir, orden:p.orden,
+            truckId:p.truckId, truckName:p.truckName, etaMin:p.etaMin,
+            status: est.status || 'pendiente',
+            tsInicio: sanitizeTs(est.tsInicio) || '',
+            tsFin:    sanitizeTs(est.tsFin)    || ''
           };
-        }
-        if(!trucksObj[p.truckId].paradaIds.includes(pid))
-          trucksObj[p.truckId].paradaIds.push(pid);
-      });
-      // Ordenar paradas por orden
-      Object.keys(trucksObj).forEach(function(tid){
-        trucksObj[tid].paradaIds.sort(function(a,b){
-          return (paradasObj[a]?.orden||0)-(paradasObj[b]?.orden||0);
+          if(!trucksObj[p.truckId]) trucksObj[p.truckId]={name:p.truckName,elabId:eid,color:p.truckId.indexOf('T1')>-1?(eid==='006'?'#f97316':'#818cf8'):(eid==='006'?'#fbbf24':'#a78bfa'),paradaIds:[]};
+          if(!trucksObj[p.truckId].paradaIds.includes(pid)) trucksObj[p.truckId].paradaIds.push(pid);
         });
+        Object.keys(trucksObj).forEach(function(tid){
+          trucksObj[tid].paradaIds.sort(function(a,b){ return (paradasObj[a]?.orden||0)-(paradasObj[b]?.orden||0); });
+        });
+        secciones.push({vuelta:res.vuelta, trucksObj:trucksObj, paradasObj:paradasObj});
       });
-      secciones.push({vuelta: res.vuelta, trucksObj: trucksObj, paradasObj: paradasObj});
-    });
+
+    } else {
+      // Fechas anteriores: leer de Historial agrupado por vuelta
+      var histRes = await fetch(GS_URL+'?action=getHistorial&desde='+desde+'&hasta='+hasta+'&elabId='+eid)
+        .then(function(r){ return r.json(); });
+      if(histRes.ok && histRes.entregas && histRes.entregas.length){
+        // Agrupar por vuelta
+        var porVuelta = {};
+        histRes.entregas.forEach(function(e){
+          var v = String(e.vuelta||1);
+          if(!porVuelta[v]) porVuelta[v] = [];
+          porVuelta[v].push(e);
+        });
+        Object.keys(porVuelta).sort().forEach(function(v){
+          var trucksObj = {}, paradasObj = {};
+          porVuelta[v].forEach(function(e){
+            // Usar suc como clave única (más estable que sucId)
+            var pid = String(e.suc||e.sucId);
+            paradasObj[pid] = {
+              id:pid, suc:String(e.suc), dir:e.dir||'', orden:Number(e.orden)||0,
+              truckId:e.truckId, truckName:e.truckName, etaMin:Number(e.etaMin)||0,
+              status: e.tsFin ? 'entregado' : (e.tsInicio ? 'en-camino' : 'pendiente'),
+              tsInicio: sanitizeTs(e.tsInicio) || '',
+              tsFin:    sanitizeTs(e.tsFin)    || ''
+            };
+            var tcolor = e.truckId && e.truckId.indexOf('T2')>-1 ?
+              (eid==='006'?'#fbbf24':'#a78bfa') : (eid==='006'?'#f97316':'#818cf8');
+            if(!trucksObj[e.truckId]) trucksObj[e.truckId]={name:e.truckName,elabId:eid,color:tcolor,paradaIds:[]};
+            if(!trucksObj[e.truckId].paradaIds.includes(pid)) trucksObj[e.truckId].paradaIds.push(pid);
+          });
+          Object.keys(trucksObj).forEach(function(tid){
+            trucksObj[tid].paradaIds.sort(function(a,b){ return (paradasObj[a]?.orden||0)-(paradasObj[b]?.orden||0); });
+          });
+          secciones.push({vuelta:Number(v), trucksObj:trucksObj, paradasObj:paradasObj});
+        });
+      }
+    }
 
     if(!secciones.length){
       status.textContent = 'No hay datos para esa fecha/elaboradora.';
